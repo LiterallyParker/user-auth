@@ -3,14 +3,14 @@ const tableName = "tokens"
 
 const createToken = factories.createFactory({
     tableName,
-    columns: ["user_id", "token_type", "token", "expires_at"],
-    returning: ["id", "user_id", "token"],
+    columns: ["user_id", "token_type", "token"],
+    returning: ["id", "user_id"],
 });
 
 const getToken = factories.getFactory({
     tableName,
     allowedFields: ["id", "user_id", "token_type", "token", "expires_at", "created_at", "used_at"],
-    allowedConditions: ["id", "user_id"]
+    allowedConditions: ["id", "user_id", "token_type"]
 });
 
 const updateToken = factories.updateFactory({

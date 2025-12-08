@@ -3,13 +3,14 @@ const { handlePassword, comparePassword } = require("./password");
 const { handleConstraints } = require("../util");
 const { createAccessToken, createRefreshToken } = require("./jwt");
 const { createUser, getUser, getUserWithHash } = require("../database/users");
+const { createToken } = require("../database/tokens")
 const { genEmailToken } = require("./tokens");
 const sendEmail = require("../emailer/sender");
 
 async function handleRegistration({ firstName, lastName, username, email, reqPass, conPass }) {
 
-    firstName = firstName.trim();
-    lastName = lastName.trim();
+    firstName = firstName ? firstName.trim() : null;
+    lastName = lastName ? lastName.trim() : null;
     email = email.toLowerCase().trim();
     username = username.trim();
 
@@ -33,16 +34,14 @@ async function handleRegistration({ firstName, lastName, username, email, reqPas
         if (!passwordResponse.success) return { success: false, error: passwordResponse.error };
         const { hash } = passwordResponse;
         
-        const user = await createUser({
-            firstName: firstName || null,
-            lastName: lastName || null,
-            username,
-            email,
-            hash
-        });
+        const user = await createUser({ firstName, lastName, username, email, hash });
         
         const emailToken = genEmailToken();
-        sendEmail({ to: user.email, type: "VerifyEmail", data: { token: emailToken }});
+        createToken({
+            userId: user.id,
+            tokenType: "EmailVerification",
+            token: emailToken
+        }).then(() => sendEmail({ to: user.email, type: "VerifyEmail", data: { token: emailToken, username }}));
         
         const refreshToken = createRefreshToken({ id: user.id });
         const accessToken = createAccessToken({
