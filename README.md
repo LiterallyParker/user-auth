@@ -2,7 +2,7 @@ IMPORTANT
 ---------
 This server requires postgresql and node. Install with:
 
-`sudo apt install postgres npm`
+`sudo apt install postgresql npm`
 
 Also, in order to acheive email functionality, you will need to get an app password from a valid gmail account, which will be the environment variables SMTP_USER and SMTP_PASS.
 
