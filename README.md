@@ -33,10 +33,9 @@ Dependencies
 - jsonwebtoken: ^9.0.2
 - morgan: ^1.10.1
 - nodemailer: ^7.0.11
+- nodemon: ^3.1.11
 
 *To be implemented:*
 - uuid: ^13.0.0
 - express-rate-limit: ^8.2.1
 - socket.io: ^4.8.1
-- helmet: ^8.1.0
-
