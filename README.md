@@ -1,17 +1,20 @@
+IMPORTANT
+---------
+This server requires postgresql and node. Install with:
+
+`sudo apt install postgres npm`
+
 Running This Server
 ----------------------
 - Clone the repo
 - Add environment variables
 - run these commands:
+
     `npm install`
     `npm run build`
     `npm run start`
-- Server is up and running!
 
-IMPORTANT
----------
-This server requires postgresql and node. Install with:
-`sudo apt install postgres npm`
+- Server is up and running!
 
 Dependencies
 ---------------
