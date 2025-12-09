@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { handleRegistration, handleLogin } = require("../auth/handlers");
+const { handleRegistration, handleLogin, handleEmailVerification } = require("../auth/handlers");
 const { requireFields } = require("../util");
 const authRoutes = Router();
 
@@ -90,7 +90,23 @@ authRoutes.post("/refresh", async (req, res) => {
 });
 
 authRoutes.get("/verify-email", async (req, res) => {
-    res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ success: false, error: "TokenRequired"});
+    
+    const result = await handleEmailVerification(token);
+    
+    if (!result.success) {
+        const errorMap = {
+            InvalidToken: 400,
+            TokenExpired: 410,
+            UserNotFound: 404,
+            EmailAlreadyVerified: 409,
+            EmailVerificationFailed: 500
+        };
+        return res.status(errorMap[result.error]).json(result);
+    };
+
+    return res.status(200).json(result);
 });
 
 module.exports = authRoutes;

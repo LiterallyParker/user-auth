@@ -94,9 +94,6 @@ async function handleLogin({ identifier, password }) {
 };
 
 async function handleEmailVerification(token) {
-    // Verify token was supplied
-    if (!token || typeof token !== "string") return { success: false, error: "InvalidToken" };
-
     try {
         // Get the token record from the database
         const tokenRecord = await getToken({
