@@ -174,11 +174,75 @@ const deleteFactory = ({
         console.error(`${ANSIcolors.red}deleteFactory Error\n Error deleting entry from table '${tableName}'${ANSIcolors.reset}\n`, error);
     };
 };
+const deleteBulkFactory = ({
+    tableName,
+    allowedConditions = []
+}) => async (rawConditions = {}) => {
+    try {
+        // Convert to snake_case
+        const snakeConditions = keysToSnake(rawConditions)
+        // Validate conditions
+        const conditionEntries = Object.entries(snakeConditions).filter(([key]) => {
+            // Extract the base field name (before comparison operator)
+            const baseKey = key.split("$")[0];
+            return allowedConditions.includes(baseKey)
+        });
+        if (conditionEntries.length === 0) throw new Error(`No valid conditions provided for ${tableName}`);
+        // Build where clause
+        const whereClauses = []
+        const values = []
+        let paramCount = 1;
+
+        for (const [key, value] of conditionEntries) {
+            const parts = key.split("$");
+            const field = parts[0];
+            const operator = parts[1] || "eq"; // Default to equals
+
+            switch (operator) {
+                case "lt": // less than
+                    whereClauses.push(`${field} < $${paramCount++}`);
+                    values.push(value);
+                    break;
+                case "gt": // greater than
+                    whereClauses.push(`${field} > $${paramCount++}`);
+                    values.push(value);
+                    break;
+                case "lte": // less than / equal to
+                    whereClauses.push(`${field} <= $${paramCount++}`);
+                    values.push(value);
+                    break;
+                case "gte": // greater than / equal to
+                    whereClauses.push(`${field} >= $${paramCount++}`);
+                    values.push(value);
+                    break;
+                case "is_null":
+                    whereClauses.push(`${field} IS NULL`);
+                    values.push(value);
+                    break;
+                case "not_null":
+                    whereClauses.push(`${field} IS NOT NULL`);
+                    values.push(value);
+                    break;
+                default: // equals
+                    whereClauses.push(`${field} = $${paramCount++}`);
+                    values.push(value);
+            };
+        };
+
+        const query = `DELETE FROM ${tableName} WHERE ${whereClauses.join(" AND ")} RETURNING id;`;
+
+        const result = await pool.query(query, values);
+        return result.rowCount;
+    } catch (error) {
+        console.error(`${ANSIcolors.red}deleteBulkFactory Error\n Error bulk deleting from '${tableName}'${ANSIcolors.reset}\n`, error)
+    }
+}
 
 module.exports = {
     tableFactory,
     createFactory,
     getFactory,
     updateFactory,
-    deleteFactory
+    deleteFactory,
+    deleteBulkFactory
 };

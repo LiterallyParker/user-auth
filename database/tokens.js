@@ -25,9 +25,15 @@ const deleteToken = factories.deleteFactory({
     allowedConditions: ["id", "user_id"]
 });
 
+const deleteBulkTokens = factories.deleteBulkFactory({
+    tableName,
+    allowedConditions: ["expires_at", "used_at"]
+});
+
 module.exports = {
     createToken,
     getToken,
     updateToken,
-    deleteToken
-}
+    deleteToken,
+    deleteBulkTokens
+};
