@@ -3,7 +3,7 @@ const { handlePassword, comparePassword } = require("./password");
 const { handleConstraints } = require("../util");
 const { createAccessToken, createRefreshToken } = require("./jwt");
 const { createUser, getUser, getUserWithHash } = require("../database/users");
-const { createToken } = require("../database/tokens")
+const { createToken, getToken, deleteToken } = require("../database/tokens")
 const { genEmailToken } = require("./tokens");
 const sendEmail = require("../emailer/sender");
 
@@ -93,11 +93,41 @@ async function handleLogin({ identifier, password }) {
     };
 };
 
-async function handleVerifyEmail(token) {
+async function handleEmailVerification(token) {
+    // Verify token was supplied
+    if (!token || typeof token !== "string") return { success: false, error: "InvalidToken" };
 
-}
+    try {
+        // Get the token record from the database
+        const tokenRecord = await getToken({
+            token: token.trim(),
+            tokenType: "EmailVerification"
+        });
+        // Verify a token was grabbed
+        if (!tokenRecord) return { success: false, error: "InvalidToken" };
+        // Verify token expiry
+        if (tokenRecord.expiresAt && new Date(tokenRecord.expiresAt) < new Date()) return { success: false, error: "TokenExpired" };
+        // Get the user record from the database
+        const user = await getUser({ id: tokenRecord.userId });
+        // Verify a user was grabbed
+        if (!user) return { success: false, error: "UserNotFound" };
+        // Verify the user is not already email verified
+        if (user.emailVerified) return { success: false, error: "EmailAlreadyVerified" };
+        // Update the user record
+        await updateUser({ id: user.id }, { emailVerified: true });
+        // Update the token record
+        await updateToken({ id: tokenRecord.id }, { usedAt: new Date() });
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error while verifying email token\n", error);
+        return { success: false, error: "EmailVerificationFailed" };
+    };
+};
 
 module.exports = {
     handleRegistration,
-    handleLogin
+    handleLogin,
+    handleEmailVerification
 };
