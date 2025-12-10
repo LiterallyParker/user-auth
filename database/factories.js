@@ -217,11 +217,9 @@ const deleteBulkFactory = ({
                     break;
                 case "is_null":
                     whereClauses.push(`${field} IS NULL`);
-                    values.push(value);
                     break;
                 case "not_null":
                     whereClauses.push(`${field} IS NOT NULL`);
-                    values.push(value);
                     break;
                 default: // equals
                     whereClauses.push(`${field} = $${paramCount++}`);

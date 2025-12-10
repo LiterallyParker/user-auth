@@ -18,12 +18,14 @@ const httpServer = createServer(server);
 const io = new Server(httpServer);
 const PORT = process.env.PORT;
 const routes = require("./routes");
+const startCronJobs = require("./cron")
 const { ANSIcolors } = require("./util");
 
 server.use(cors());
 server.use(morgan('tiny'));
 server.use(express.json());
 server.use(cookieParser());
+
 
 server.use(express.static(path.join(__dirname, "public"), {
 	max_age: "1h",
@@ -36,4 +38,5 @@ server.get("/", (req, res) => {
 	res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+startCronJobs()
 server.listen(PORT, () => console.log(`Server is listening\nClient: ${ANSIcolors.yellow}${process.env.CLIENT_URL}${ANSIcolors.reset}`));

@@ -1,9 +1,14 @@
-const { deleteToken } = require("../../database/tokens");
+const { deleteBulkTokens } = require("../../database/tokens");
 
-const cleanExpiredTokens = {
-    cron: "0 * * * *", // Every hour at minute 0
+module.exports = {
+    name: "CleanExpiredTokens",
+    cronExpression: "0 0 * * *", // at midnight
     job: async () => {
-        const expiredRows = await deleteToken({ expiresAt: expiresAt > new Date() });
-        const usedRows = await deleteToken({ usedAt: usedAt !== null });
+        try {
+            const rows = await deleteBulkTokens({ expiresAt$lt: new Date() })
+            console.log(rows)
+        } catch (error) {
+            console.error(error);
+        }
     }
 };
