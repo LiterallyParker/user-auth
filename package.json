@@ -1,5 +1,5 @@
 {
-  "name": "user-server",
+  "name": "user-auth",
   "version": "1.0.0",
   "description": "A user data collection server",
   "main": "index.js",
