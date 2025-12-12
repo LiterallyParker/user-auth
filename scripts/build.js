@@ -1,9 +1,20 @@
 require("dotenv").config({ quiet: true });
 const { pool } = require("../database");
 const { tableFactory } = require("../database/factories");
-async function before() {
+
+async function createExtenstions() {
     try {
+        console.log("Ensuring extensions...");
         await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
+        console.log("Extension 'pgcrypto' ensured");
+    } catch (error) {
+        console.error("Error while preping for creation\n", error)
+    };
+};
+
+async function createFunctions() {
+    try {
+        console.log("Ensuring functions...");
         await pool.query(`
             CREATE OR REPLACE FUNCTION update_updated_at_column()
             RETURNS TRIGGER AS $$
@@ -13,11 +24,12 @@ async function before() {
             END;
             $$ language 'plpgsql';
         `);
-        console.log("Pre-build steps completed");
+        console.log("Function 'update_updated_at_column' ensured");
     } catch (error) {
         console.error("Error while preping for creation\n", error)
     };
 };
+
 const createUsersTable = tableFactory({
     tableName: "users",
     columns: [
@@ -54,7 +66,8 @@ const createTokensTable = tableFactory({
 
 async function createDB() {
     try {
-        await before().then(() => console.log("Completed pre-build"));
+        await createExtenstions();
+        await createFunctions();
         await createUsersTable().then((result) => {
             if (result.success) {
                 return console.log(result.message);
