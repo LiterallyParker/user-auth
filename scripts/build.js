@@ -13,6 +13,7 @@ async function before() {
             END;
             $$ language 'plpgsql';
         `);
+        console.log("Pre-build steps completed");
     } catch (error) {
         console.error("Error while preping for creation\n", error)
     };
@@ -54,8 +55,18 @@ const createTokensTable = tableFactory({
 async function createDB() {
     try {
         await before().then(() => console.log("Completed pre-build"));
-        await createUsersTable().then(() => console.log("Table 'users' created"));
-        await createTokensTable().then(() => console.log("Table 'tokens' created"));
+        await createUsersTable().then((result) => {
+            if (result.success) {
+                return console.log(result.message);
+            }
+            console.error(`Error creating 'users' table: ${result.error}`);
+        });
+        await createTokensTable().then((result) => {
+            if (result.success) {
+                return console.log(result.message);
+            }
+            console.error(`Error creating 'users' table: ${result.error}`);
+        });
         await pool.end();
     } catch (error) {
         console.error("Error creating database\n", error);

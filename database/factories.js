@@ -8,6 +8,16 @@ const tableFactory = ({
     triggers = []
 }) => async () => {
     try {
+        // Check if table already exists
+        const checkQuery = `
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = $1
+            );
+        `;
+        const existsResult = await pool.query(checkQuery, [tableName]);
+        const alreadyExists = existsResult.rows[0].exists;
+
         // Build column definitions
         const columnDefs = columns.map(col => {
             let def = `${col.name} ${col.type}`;
@@ -39,8 +49,24 @@ const tableFactory = ({
             `;
             await pool.query(tQuery);
         };
+        return {
+            success: true,
+            tableName,
+            action: alreadyExists ? "exists" : "created",
+            message: alreadyExists
+                ? `Table '${tableName}' already exists`
+                : `Table '${tableName}' created successfully`,
+            error: null
+        }
     } catch (error) {
-        console.error(`${ANSIcolors.red}createTableFactory Error\n Error creating table '${tableName}'${ANSIcolors.reset}\n`, error);
+        // console.error(`${ANSIcolors.red}createTableFactory Error\n Error creating table '${tableName}'${ANSIcolors.reset}\n`, error);
+        return {
+            success: false,
+            tableName,
+            action: "error",
+            message: `Error creating table '${tableName}'`,
+            error: error.message
+        }
     };
 };
 const createFactory = ({
