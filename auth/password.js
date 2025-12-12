@@ -24,10 +24,10 @@ async function handlePassword(reqPass, conPass) {
     // Trim whitespace
     reqPass = reqPass.trim();
     conPass = conPass.trim();
-    // Ensure Password requirements are met
-    if (!handleConstraints(passwordConstraints, reqPass).valid) return { success: false, error: passwordEval.errors[0] };
     // Compare requested and confirmed passwords
     if (reqPass !== conPass) return { success: false, error: "PasswordMismatch" };
+    // Ensure Password requirements are met
+    if (!handleConstraints(passwordConstraints, reqPass).valid) return { success: false, error: passwordEval.errors[0] };
     // Hash requested password
     const hash = await hashPassword(reqPass);
     // Return success

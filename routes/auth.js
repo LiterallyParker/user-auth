@@ -4,27 +4,49 @@ const { requireFields } = require("../util");
 const authRoutes = Router();
 
 authRoutes.post("/register", async (req, res) => {
+    /*
+    * Expects body:
+    * {
+    *   firstName: string (optional),
+    *   lastName: string (optional),
+    *   username: string (required),
+    *   email: string (required),
+    *   reqPass: string ,
+    *   conPass: string
+    * }
+    */
     // Ensure required fields are provided
     const requiredFieldsResponse = requireFields(["username", "email", "reqPass", "conPass"], req.body);
     if (!requiredFieldsResponse.success) return res.status(401).json(requiredFieldsResponse);
-
-    // Extract body data
-    const {
-        firstName,
-        lastName,
-        username,
-        email,
-        reqPass,
-        conPass
-    } = req.body;
-
     // Handle registration
-    const result = await handleRegistration({ firstName, lastName, username, email, reqPass, conPass });
-    if (!result.success) return res.status(401).json(result);
-
+    const result = await handleRegistration(req.body);
+    if (!result.success) {
+        const errorCodes = {
+            // User existence errors
+            UsernameExists: 409,
+            EmailExists: 409,
+            // Email errors
+            EmailFormat: 400,
+            EmailSpaces: 400,
+            EmailLength: 400,
+            // Username errors
+            UsernameFormat: 400,
+            UsernameEnds: 400,
+            UsernameLength: 400,
+            // Password errors
+            PassLower: 400,
+            PassUpper: 400,
+            PassNumber: 400,
+            PassSpecial: 400,
+            PassLength: 400,
+            PasswordMismatch: 400,
+            // General registration failure
+            RegistrationFailed: 500,
+        };
+        return res.status(errorCodes[result.error]).json(result)
+    };
     // Extract registration data
     const { user, refreshToken, accessToken } = result;
-
     // Make refresh token a cookie (yum)
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
@@ -32,29 +54,32 @@ authRoutes.post("/register", async (req, res) => {
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
     });
-
     // Return success
-    res.status(200).json({ success: true, user, accessToken });
+    return res.status(200).json({ success: true, user, accessToken });
 });
 
 authRoutes.post("/login", async (req, res) => {
+    /*
+    * Expects body:
+    * {
+    *   identifier: string (username or email) (required),
+    *   password: string (required)
+    * }
+    */
     // Ensure required fields are provided
     const requiredFieldsResponse = requireFields(["identifier", "password"], req.body);
     if (!requiredFieldsResponse.success) return res.status(401).json(requiredFieldsResponse);
-
-    // Extract body data
-    const {
-        identifier,
-        password
-    } = req.body;
-
     // Handle login
-    const result = await handleLogin({ identifier, password });
-    if (!result.success) return res.status(401).json(result);
-
+    const result = await handleLogin(req.body);
+    if (!result.success) {
+        const errorCodes = {
+            InvalidCredentials: 401,
+            LoginFailed: 500
+        };
+        return res.status(errorCodes[result.error]).json(result);
+    };
     // Extract login data
     const { user, refreshToken, accessToken } = result;
-
     // Make refresh token a cookie (yum)
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
@@ -62,9 +87,8 @@ authRoutes.post("/login", async (req, res) => {
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
     });
-
     // Return success
-    res.status(200).json({ success: true, user, accessToken });
+    return res.status(200).json({ success: true, user, accessToken });
 });
 
 authRoutes.post("/logout", async (req, res) => {
@@ -90,11 +114,12 @@ authRoutes.post("/refresh", async (req, res) => {
 });
 
 authRoutes.get("/verify-email", async (req, res) => {
-    const { token } = req.query;
-    if (!token) return res.status(400).json({ success: false, error: "TokenRequired"});
-    
-    const result = await handleEmailVerification(token);
-    
+    /*
+    * Expects query:
+    * ?token={email_verification_token}
+    */
+    if (!req.query.token) return res.status(400).json({ success: false, error: "TokenRequired"});
+    const result = await handleEmailVerification(req.query.token);
     if (!result.success) {
         const errorMap = {
             InvalidToken: 400,
