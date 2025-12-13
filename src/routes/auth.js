@@ -72,7 +72,7 @@ authRoutes.post("/login", async (req, res) => {
     */
     try {
         // Verify required fields
-        requireFields(["username", "email", "reqPass", "conPass"], req.body);
+        requireFields(["identifier", "password"], req.body);
         
         // Handle login
         const result = await handleLogin(req.body);

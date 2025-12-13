@@ -17,9 +17,9 @@ const server = express();
 const httpServer = createServer(server);
 const io = new Server(httpServer);
 const PORT = process.env.PORT;
-const routes = require("./routes");
-const startCronJobs = require("./cron")
-const { ANSIcolors } = require("./util");
+const routes = require("./src/routes");
+const startCronJobs = require("./src/cron")
+const { ANSIcolors } = require("./src/util");
 
 server.use(cors());
 server.use(morgan('tiny'));
