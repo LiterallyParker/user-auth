@@ -1,32 +1,19 @@
+require("dotenv").config();
 const { pool } = require("../database");
 const { hashPassword } = require("../auth/password");
-
-async function resetSeeds(tablesToClear = ['users']) {
-    try {
-        const resetPromises = tablesToClear.map(table => 
-            pool.query(`
-                DELETE FROM ${table};
-            `)
-        );
-        await Promise.all(resetPromises);
-        console.log("Seeds reset");
-    } catch (error) {
-        console.error("Error reseting seeds\n", error);
-        throw error;
-    };
-};
+const { createUser } = require("../database/users");
 
 async function seedUsers() {
     const hash = await hashPassword("SuperSecretPassword00!");
     const adminHash = await hashPassword("AdminSecretPassword00!");
+    const admin = {
+        firstName: "Admin",
+        lastName: "Account",
+        username: "admin",
+        email: "admin@email.com",
+        hash: adminHash
+    }
     const userSeed = [
-        {
-            firstName: "Admin",
-            lastName: "Account",
-            username: "admin",
-            email: "admin@email.com",
-            hash: adminHash
-        },
         {
             firstName: "Seeded",
             lastName: "User1",
@@ -92,19 +79,8 @@ async function seedUsers() {
         },
     ];
     try {
-        const insertPromises = userSeed.map(user =>
-            pool.query(`
-                INSERT INTO users (first_name, last_name, username, email, hash)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *;
-            `, [user.firstName, user.lastName, user.username, user.email, user.hash])
-        );
-
-        const results = await Promise.all(insertPromises);
-        const seeded = results.map(r => r.rows[0]);
-
-        console.log(`Successfully seeded ${seeded.length} entries into table 'users'`);
-        return seeded;
+        for (const user of userSeed) await createUser(user)
+        await createUser(admin)
 
     } catch (error) {
         console.log("Error seeding users\n", error);
@@ -113,7 +89,6 @@ async function seedUsers() {
 };
 
 async function seedDB() {
-    await resetSeeds();
     await seedUsers();
     await pool.end();
     console.log("Seeding complete");

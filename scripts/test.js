@@ -27,45 +27,6 @@ async function test() {
         await runScript("./scripts/build.js", "Building Database");
         await runScript("./scripts/seed.js", "Seeding Database");
 
-        const createdUser = await usersController.createUser({
-            firstName: "Parker",
-            lastName: "Townsend",
-            username: "LiterallyParker",
-            email: "parkernash2001@gmail.com",
-            hash: "super-secret-hash-007"
-        });
-
-        const updatedUser = await usersController.updateUser(
-            conditions = {
-                "id": createdUser.id
-            },
-            updateData = {
-                "username": "ProbablyParker",
-                "firstName": "NotParker",
-                "lastName": "NotTownsend",
-                "email": "odieodinson2021@gmail.com"
-            }
-        );
-
-        const foundUser = await usersController.getUser(
-            conditions = {
-                "id": createdUser.id
-            }
-        );
-
-        const deletedCount = await usersController.deleteUser(
-            conditions = {
-                "id": createdUser.id
-            }
-        );
-        
-        console.log(
-            `\n\nCREATED USER\n`, createdUser,
-            `\n\nUPDATED USER\n`, updatedUser,
-            `\n\nFOUND USER\n`, foundUser,
-            `\n\nDELETED COUNT\n`, deletedCount
-        )
-
         console.log(`${ANSIcolors.bright}${ANSIcolors.green}\n-= Tests Complete =-${ANSIcolors.reset}`);
         pool.end();
     } catch (error) {

@@ -1,5 +1,6 @@
 const pool = require("./pool");
 const { ANSIcolors, keysToSnake, keysToCamel } = require("../util");
+const { ulid } = require("ulid");
 
 const tableFactory = ({
     tableName,
@@ -69,16 +70,20 @@ const tableFactory = ({
         }
     };
 };
+
 const createFactory = ({
     tableName,
     columns,
     returning = ["*"]
 }) => async (data) => {
     try {
+        // Auto-generate ULID for id field
+        data.id = ulid();
+        
         // Convert data to snake_case for the database to understand
         const snakeData = keysToSnake(data);
-        // Validate data
-        const entries = Object.entries(snakeData).filter(([key]) => columns.includes(key));
+        // Validate data - include 'id' in validation
+        const entries = Object.entries(snakeData).filter(([key]) => columns.includes(key) || key === 'id');
         if (entries.length === 0) throw new Error(`No valid columns provided for ${tableName}`);
         // Build the query
         const cols = entries.map(([key]) => key).join(", ");

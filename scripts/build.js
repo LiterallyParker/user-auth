@@ -5,8 +5,8 @@ const { tableFactory } = require("../database/factories");
 async function createExtenstions() {
     try {
         console.log("Ensuring extensions...");
-        await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
-        console.log("Extension 'pgcrypto' ensured");
+
+        console.log("No extensions to ensure");
     } catch (error) {
         console.error("Error while preping for creation\n", error)
     };
@@ -15,6 +15,7 @@ async function createExtenstions() {
 async function createFunctions() {
     try {
         console.log("Ensuring functions...");
+        // Ensure function to update updated_at timestamp
         await pool.query(`
             CREATE OR REPLACE FUNCTION update_updated_at_column()
             RETURNS TRIGGER AS $$
@@ -33,7 +34,7 @@ async function createFunctions() {
 const createUsersTable = tableFactory({
     tableName: "users",
     columns: [
-        { name: "id", type: "UUID", primaryKey: true, default: "gen_random_uuid()" },
+        { name: "id", type: "CHAR(26)", primaryKey: true },
         { name: "first_name", type: "VARCHAR(100)" },
         { name: "last_name", type: "VARCHAR(100)" },
         { name: "username", type: "VARCHAR(30)", notNull: true, unique: true, check: "length(username) >= 3 AND username ~ '^[a-zA-Z0-9._-]+$'"},
@@ -51,8 +52,8 @@ const createUsersTable = tableFactory({
 const createTokensTable = tableFactory({
     tableName: "tokens",
     columns: [
-        { name: "id", type: "UUID", primaryKey: true, default: "gen_random_uuid()" },
-        { name: "user_id", type: "UUID", notNull: true, references: "users(id)", cascade: true },
+        { name: "id", type: "CHAR(26)", primaryKey: true },
+        { name: "user_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
         { name: "token_type", type: "VARCHAR(255)", notNull: true },
         { name: "token", type: "VARCHAR(255)", notNull: true, unique: true},
         { name: "expires_at", type: "TIMESTAMP", default : "CURRENT_TIMESTAMP + INTERVAL '1 hour'" },
@@ -78,13 +79,14 @@ async function createDB() {
             if (result.success) {
                 return console.log(result.message);
             }
-            console.error(`Error creating 'users' table: ${result.error}`);
+            console.error(`Error creating 'tokens' table: ${result.error}`);
         });
         await pool.end();
     } catch (error) {
         console.error("Error creating database\n", error);
     };
 };
+
 createDB().then(() => {
     console.log("Database created");
 });
