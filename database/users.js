@@ -13,6 +13,12 @@ const getUser = factories.getFactory({
     allowedConditions: ["id", "username", "email"]
 });
 
+const getPublicUser = factories.getFactory({
+    tableName,
+    allowedFields: ["id", "first_name", "last_name", "username", "email_verified", "created_at"],
+    allowedConditions: ["id"]
+});
+
 const getUserWithHash = factories.getFactory({
     tableName,
     allowedFields: ["id", "hash"],
@@ -34,6 +40,7 @@ const deleteUser = factories.deleteFactory({
 module.exports = {
     createUser,
     getUser,
+    getPublicUser,
     getUserWithHash,
     updateUser,
     deleteUser
