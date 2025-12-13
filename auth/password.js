@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS);
-const { handleConstraints } = require("../util")
+const { handleConstraints, ValidationError } = require("../util")
 
 const passwordConstraints = {
     "PassLower": /[a-z]/,
@@ -24,14 +24,18 @@ async function handlePassword(reqPass, conPass) {
     // Trim whitespace
     reqPass = reqPass.trim();
     conPass = conPass.trim();
+
     // Compare requested and confirmed passwords
-    if (reqPass !== conPass) return { success: false, error: "PasswordMismatch" };
+    if (reqPass !== conPass) throw new ValidationError("Passwords do not match", ["PasswordMismatch"]);
+    
     // Ensure Password requirements are met
-    if (!handleConstraints(passwordConstraints, reqPass).valid) return { success: false, error: passwordEval.errors[0] };
+    handleConstraints(passwordConstraints, reqPass);
+    
     // Hash requested password
     const hash = await hashPassword(reqPass);
+    
     // Return success
-    return { success: true, hash };
+    return hash;
 };
 
 module.exports = {

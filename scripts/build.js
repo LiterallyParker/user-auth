@@ -69,18 +69,12 @@ async function createDB() {
     try {
         await createExtenstions();
         await createFunctions();
-        await createUsersTable().then((result) => {
-            if (result.success) {
-                return console.log(result.message);
-            }
-            console.error(`Error creating 'users' table: ${result.error}`);
-        });
-        await createTokensTable().then((result) => {
-            if (result.success) {
-                return console.log(result.message);
-            }
-            console.error(`Error creating 'tokens' table: ${result.error}`);
-        });
+        console.log("\n  Creating table 'users'...");
+        const usersResult = await createUsersTable();
+        console.log(usersResult.message + "\n");
+        console.log("Creating table 'Tokens'...");
+        const tokensResult = await createTokensTable();
+        console.log(tokensResult.message + "\n");
         await pool.end();
     } catch (error) {
         console.error("Error creating database\n", error);

@@ -15,47 +15,51 @@ authRoutes.post("/register", async (req, res) => {
     *   conPass: string
     * }
     */
-    // Ensure required fields are provided
-    const requiredFieldsResponse = requireFields(["username", "email", "reqPass", "conPass"], req.body);
-    if (!requiredFieldsResponse.success) return res.status(401).json(requiredFieldsResponse);
-    // Handle registration
-    const result = await handleRegistration(req.body);
-    if (!result.success) {
-        const errorCodes = {
-            // User existence errors
-            UsernameExists: 409,
-            EmailExists: 409,
-            // Email errors
-            EmailFormat: 400,
-            EmailSpaces: 400,
-            EmailLength: 400,
-            // Username errors
-            UsernameFormat: 400,
-            UsernameEnds: 400,
-            UsernameLength: 400,
-            // Password errors
-            PassLower: 400,
-            PassUpper: 400,
-            PassNumber: 400,
-            PassSpecial: 400,
-            PassLength: 400,
-            PasswordMismatch: 400,
-            // General registration failure
-            RegistrationFailed: 500,
+    try {
+        // Verify required fields
+        requireFields(["username", "email", "reqPass", "conPass"], req.body);
+        
+        // Handle registration
+        const result = await handleRegistration(req.body);
+
+        // Send refresh token as a cookie
+        res.cookie("refreshToken", result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
+        });
+
+        // Respond
+        return res.status(201).json({
+            user: result.user,
+            accessToken: result.accessToken
+        });
+
+    } catch (error) {
+        // Error handling
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                message: error.message,
+                errors: error.errors
+            });
+        }
+        if (error.name === "DuplicateError") {
+            return res.status(409).json({
+                message: error.message
+            });
         };
-        return res.status(errorCodes[result.error]).json(result)
+        if (error.name === "DatabaseError") {
+            return res.status(500).json({
+                message: "A database error occured"
+            });
+        };
+        // Unexpected Errors
+        console.error("Unexpected registration error:", error)
+        return res.status(500).json({
+            message: "Internal server error"
+        });
     };
-    // Extract registration data
-    const { user, refreshToken, accessToken } = result;
-    // Make refresh token a cookie (yum)
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
-    });
-    // Return success
-    return res.status(200).json({ success: true, user, accessToken });
 });
 
 authRoutes.post("/login", async (req, res) => {
@@ -66,29 +70,51 @@ authRoutes.post("/login", async (req, res) => {
     *   password: string (required)
     * }
     */
-    // Ensure required fields are provided
-    const requiredFieldsResponse = requireFields(["identifier", "password"], req.body);
-    if (!requiredFieldsResponse.success) return res.status(401).json(requiredFieldsResponse);
-    // Handle login
-    const result = await handleLogin(req.body);
-    if (!result.success) {
-        const errorCodes = {
-            InvalidCredentials: 401,
-            LoginFailed: 500
+    try {
+        // Verify required fields
+        requireFields(["username", "email", "reqPass", "conPass"], req.body);
+        
+        // Handle login
+        const result = await handleLogin(req.body);
+
+        // Send refresh token as a cookie
+        res.cookie("refreshToken", result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
+        });
+
+        // Respond
+        return res.status(200).json({
+            user: result.user,
+            accessToken: result.accessToken
+        });
+
+    } catch (error) {
+        // Error handling
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                message: error.message,
+                errors: error.errors
+            });
         };
-        return res.status(errorCodes[result.error]).json(result);
+        if (error.name === "AuthError") {
+            return res.status(401).json({
+                message: error.message
+            });
+        };
+        if (error.name === "DatabaseError") {
+            return res.status(500).json({
+                message: "A database error occured"
+            });
+        };
+        // Unexpected Errors
+        console.error("Unexpected login error:", error)
+        return res.status(500).json({
+            message: "Internal server error"
+        });
     };
-    // Extract login data
-    const { user, refreshToken, accessToken } = result;
-    // Make refresh token a cookie (yum)
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
-    });
-    // Return success
-    return res.status(200).json({ success: true, user, accessToken });
 });
 
 authRoutes.post("/logout", async (req, res) => {
@@ -118,20 +144,43 @@ authRoutes.get("/verify-email", async (req, res) => {
     * Expects query:
     * ?token={email_verification_token}
     */
-    if (!req.query.token) return res.status(400).json({ success: false, error: "TokenRequired"});
-    const result = await handleEmailVerification(req.query.token);
-    if (!result.success) {
-        const errorMap = {
-            InvalidToken: 400,
-            TokenExpired: 410,
-            UserNotFound: 404,
-            EmailAlreadyVerified: 409,
-            EmailVerificationFailed: 500
-        };
-        return res.status(errorMap[result.error]).json(result);
-    };
+    try {
+        // Verify required fields
+        requireFields(["token"], req.query);
 
-    return res.status(200).json(result);
+        // Handle verification
+        await handleEmailVerification(req.query);
+
+        // Respond
+        return res.status(200).json({
+            message: "Email verified successfully"
+        });
+
+    } catch (error) {
+        // Error handling
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                message: error.message,
+                errors: error.errors
+            });
+        };
+        if (error.name === "TokenError") {
+            const statusCode = error.message.includes("expired") ? 410 : 400;
+            return res.status(statusCode).json({
+                message: error.message
+            });
+        };
+        if (error.name === "DatabaseError") {
+            return res.status(500).json({
+                message: "A database error occured"
+            });
+        };
+        // Unexpected Errors
+        console.error("Unexpected email verification error:", error)
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    };
 });
 
 module.exports = authRoutes;

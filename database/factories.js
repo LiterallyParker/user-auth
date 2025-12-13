@@ -1,5 +1,5 @@
 const pool = require("./pool");
-const { ANSIcolors, keysToSnake, keysToCamel } = require("../util");
+const { ANSIcolors, keysToSnake, keysToCamel, DatabaseError } = require("../util");
 const { ulid } = require("ulid");
 
 const tableFactory = ({
@@ -51,23 +51,17 @@ const tableFactory = ({
             await pool.query(tQuery);
         };
         return {
-            success: true,
-            tableName,
-            action: alreadyExists ? "exists" : "created",
             message: alreadyExists
                 ? `Table '${tableName}' already exists`
                 : `Table '${tableName}' created successfully`,
-            error: null
         }
     } catch (error) {
-        // console.error(`${ANSIcolors.red}createTableFactory Error\n Error creating table '${tableName}'${ANSIcolors.reset}\n`, error);
-        return {
-            success: false,
-            tableName,
-            action: "error",
-            message: `Error creating table '${tableName}'`,
-            error: error.message
-        }
+        console.error(`${ANSIcolors.red}createTableFactory Error\n Error creating table '${tableName}'${ANSIcolors.reset}\n`, error);
+        throw new DatabaseError("Failed to create table in database", {
+            table: tableName,
+            operation: "CREATE",
+            code: error.code
+        });
     };
 };
 
@@ -79,7 +73,7 @@ const createFactory = ({
     try {
         // Auto-generate ULID for id field
         data.id = ulid();
-        
+
         // Convert data to snake_case for the database to understand
         const snakeData = keysToSnake(data);
         // Validate data - include 'id' in validation
@@ -100,9 +94,15 @@ const createFactory = ({
         // Return in camelCase
         return keysToCamel(result.rows[0]);
     } catch (error) {
-        console.error(`${ANSIcolors.red}createFactory Error\n Error adding entry to table '${tableName}'${ANSIcolors.reset}\n`, error);
+        console.error(`${ANSIcolors.red}createFactory Error\n`, error);
+        throw new DatabaseError("Failed to add record to database", {
+            table: tableName,
+            operation: "CREATE",
+            code: error.code
+        })
     };
 };
+
 const getFactory = ({
     tableName,
     allowedFields = ["*"],
@@ -132,8 +132,14 @@ const getFactory = ({
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
         console.error(`${ANSIcolors.red}getFactory Error\n Error fetching from table '${tableName}'${ANSIcolors.reset}\n`, error);
+        throw new DatabaseError("Failed to get data from database", {
+            table: tableName,
+            operation: "SELECT",
+            code: error.code
+        });
     };
 };
+
 const updateFactory = ({
     tableName,
     allowedFields = [],
@@ -178,8 +184,14 @@ const updateFactory = ({
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
         console.error(`${ANSIcolors.red}updateFactory Error\n Error updating entry in table '${tableName}'${ANSIcolors.reset}\n`, error);
+        throw new DatabaseError("Failed to update data in database", {
+            table: tableName,
+            operation: "UPDATE",
+            code: error.code
+        });
     };
 };
+
 const deleteFactory = ({
     tableName,
     allowedConditions = []
@@ -203,8 +215,14 @@ const deleteFactory = ({
         return result.rowCount;
     } catch (error) {
         console.error(`${ANSIcolors.red}deleteFactory Error\n Error deleting entry from table '${tableName}'${ANSIcolors.reset}\n`, error);
+        throw new DatabaseError("Failed to single-delete from database", {
+            table: tableName,
+            operation: "DELETE",
+            code: error.code
+        });
     };
 };
+
 const deleteBulkFactory = ({
     tableName,
     allowedConditions = []
@@ -264,8 +282,13 @@ const deleteBulkFactory = ({
         return result.rowCount;
     } catch (error) {
         console.error(`${ANSIcolors.red}deleteBulkFactory Error\n Error bulk deleting from '${tableName}'${ANSIcolors.reset}\n`, error)
-    }
-}
+        throw new DatabaseError("Failed bulk-delete from database", {
+            table: tableName,
+            operation: "DELETE",
+            code: error.code
+        });
+    };
+};
 
 module.exports = {
     tableFactory,

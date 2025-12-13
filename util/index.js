@@ -15,14 +15,12 @@ const ANSIcolors = {
     white: "\x1b[37m",
 };
 
-function handleConstraints(constraints, string) {
+function handleConstraints(constraints, string, fieldName = null) {
     const failed = Object.entries(constraints)
         .filter(([rule, regex]) => !regex.test(string))
         .map(([rule]) => rule);
-
-    return failed.length > 0
-        ? { valid: false, errors: failed }
-        : { valid: true };
+    
+    if (failed.length > 0) throw new ValidationError(`${fieldName ? fieldName : "Field"} validation failed`, failed)
 };
 
 function requireFields(requiredFields, data) {
@@ -30,8 +28,7 @@ function requireFields(requiredFields, data) {
     requiredFields.forEach(field => {
         if (!data[field]) missing.push(field);
     });
-    if (missing.length > 0) return { success: false, error: "MissingFields", missing };
-    return { success: true }
+    if (missing.length > 0) throw new ValidationError("Missing a required field", missing);
 };
 
 function snakeToCamel(str) {
@@ -56,6 +53,52 @@ function keysToSnake(obj) {
     }, {});
 };
 
+class DatabaseError extends Error {
+    constructor(message, { table, operation, code } = {}) {
+        super(message);
+        this.name = "DatabaseError";
+        this.table = table;
+        this.operation = operation;
+        this.code = code;
+    };
+};
+
+class ValidationError extends Error {
+    constructor(message, errors = []) {
+        super(message);
+        this.name = "ValidationError";
+        this.errors = Array.isArray(errors) ? errors : [errors];
+    };
+};
+
+class TokenError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "TokenError"
+    };
+};
+
+class DuplicateError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "DuplicateError"
+    };
+};
+
+class NotFoundError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "NotFoundError"
+    };
+};
+
+class AuthError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "AuthError"
+    };
+};
+
 module.exports = {
     ANSIcolors,
     handleConstraints,
@@ -63,5 +106,11 @@ module.exports = {
     snakeToCamel,
     camelToSnake,
     keysToCamel,
-    keysToSnake
+    keysToSnake,
+    DatabaseError,
+    ValidationError,
+    TokenError,
+    DuplicateError,
+    NotFoundError,
+    AuthError
 };

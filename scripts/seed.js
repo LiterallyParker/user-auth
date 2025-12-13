@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 const { pool } = require("../database");
 const { hashPassword } = require("../auth/password");
 const { createUser } = require("../database/users");
@@ -7,7 +7,7 @@ async function seedUsers() {
     const hash = await hashPassword("SuperSecretPassword00!");
     const adminHash = await hashPassword("AdminSecretPassword00!");
     const admin = {
-        firstName: "Admin",
+        firstName: "Seeded",
         lastName: "Account",
         username: "admin",
         email: "admin@email.com",
@@ -16,70 +16,80 @@ async function seedUsers() {
     const userSeed = [
         {
             firstName: "Seeded",
-            lastName: "User1",
+            lastName: "Account",
             username: "user1",
             email: "user1@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User2",
+            lastName: "Account",
             username: "user2",
             email: "user2@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User3",
+            lastName: "Account",
             username: "user3",
             email: "user3@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User4",
+            lastName: "Account",
             username: "user4",
             email: "user4@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User5",
+            lastName: "Account",
             username: "user5",
             email: "user5@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User6",
+            lastName: "Account",
             username: "user6",
             email: "user6@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User7",
+            lastName: "Account",
             username: "user7",
             email: "user7@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User8",
+            lastName: "Account",
             username: "user8",
             email: "user8@email.com",
             hash
         },
         {
             firstName: "Seeded",
-            lastName: "User9",
+            lastName: "Account",
             username: "user9",
             email: "user9@email.com",
             hash
         },
     ];
     try {
-        for (const user of userSeed) await createUser(user)
+        for (const user of userSeed) {
+            console.log("Seeding user:", user.username);
+            try {
+                await createUser(user)
+            } catch (error) {
+                if (error.name === "DatabaseError" && error.code === "23505") continue;
+                console.error(error);
+                return;
+            };
+        }
+        console.log("Seeding admin...")
         await createUser(admin)
 
     } catch (error) {
