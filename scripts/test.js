@@ -1,8 +1,7 @@
 require("dotenv").config({ quiet: true });
 const { spawn } = require("child_process");
-const { ANSIcolors } = require("../util");
-const { pool } = require("../database");
-const usersController = require("../database/users");
+const { ANSIcolors } = require("../src/util");
+const { pool } = require("../src/database");
 
 async function runScript(scriptPath, label) {
     return new Promise((res, rej) => {
@@ -10,7 +9,7 @@ async function runScript(scriptPath, label) {
         const child = spawn("node", [scriptPath]);
 
         child.stdout.on("data", (data) => process.stdout.write(`  ${ANSIcolors.green}${data}${ANSIcolors.reset}`));
-        child.stderr.on("data", (data) => process.stderr.write(`  ${ANSIcolors.red}${data}${ANSIcolors.reset}`))
+        child.stderr.on("data", (data) => process.stderr.write(`  ${ANSIcolors.red}${data}${ANSIcolors.reset}`));
 
         child.on("close", (code) => {
             if (code === 0) {

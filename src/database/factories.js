@@ -56,7 +56,6 @@ const tableFactory = ({
                 : `Table '${tableName}' created successfully`,
         }
     } catch (error) {
-        console.error(`${ANSIcolors.red}createTableFactory Error\n Error creating table '${tableName}'${ANSIcolors.reset}\n`, error);
         throw new DatabaseError("Failed to create table in database", {
             table: tableName,
             operation: "CREATE",
@@ -94,7 +93,6 @@ const createFactory = ({
         // Return in camelCase
         return keysToCamel(result.rows[0]);
     } catch (error) {
-        console.error(`${ANSIcolors.red}createFactory Error\n`, error);
         throw new DatabaseError("Failed to add record to database", {
             table: tableName,
             operation: "CREATE",
@@ -131,7 +129,6 @@ const getFactory = ({
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
-        console.error(`${ANSIcolors.red}getFactory Error\n Error fetching from table '${tableName}'${ANSIcolors.reset}\n`, error);
         throw new DatabaseError("Failed to get data from database", {
             table: tableName,
             operation: "SELECT",
@@ -183,7 +180,6 @@ const updateFactory = ({
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
-        console.error(`${ANSIcolors.red}updateFactory Error\n Error updating entry in table '${tableName}'${ANSIcolors.reset}\n`, error);
         throw new DatabaseError("Failed to update data in database", {
             table: tableName,
             operation: "UPDATE",
@@ -214,7 +210,6 @@ const deleteFactory = ({
         // Return row count
         return result.rowCount;
     } catch (error) {
-        console.error(`${ANSIcolors.red}deleteFactory Error\n Error deleting entry from table '${tableName}'${ANSIcolors.reset}\n`, error);
         throw new DatabaseError("Failed to single-delete from database", {
             table: tableName,
             operation: "DELETE",
@@ -281,7 +276,6 @@ const deleteBulkFactory = ({
         const result = await pool.query(query, values);
         return result.rowCount;
     } catch (error) {
-        console.error(`${ANSIcolors.red}deleteBulkFactory Error\n Error bulk deleting from '${tableName}'${ANSIcolors.reset}\n`, error)
         throw new DatabaseError("Failed bulk-delete from database", {
             table: tableName,
             operation: "DELETE",

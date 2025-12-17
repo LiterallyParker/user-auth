@@ -1,6 +1,6 @@
 require("dotenv").config({ quiet: true });
-const { pool } = require("../database");
-const { tableFactory } = require("../database/factories");
+const { pool } = require("../src/database");
+const { tableFactory } = require("../src/database/factories");
 
 async function createExtenstions() {
     try {

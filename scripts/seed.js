@@ -1,7 +1,7 @@
 require("dotenv").config({ quiet: true });
-const { pool } = require("../database");
-const { hashPassword } = require("../auth/password");
-const { createUser } = require("../database/users");
+const { pool } = require("../src/database");
+const { hashPassword } = require("../src/auth/password");
+const { createUser } = require("../src/database/users");
 
 async function seedUsers() {
     const hash = await hashPassword("SuperSecretPassword00!");
@@ -82,17 +82,29 @@ async function seedUsers() {
         for (const user of userSeed) {
             console.log("Seeding user:", user.username);
             try {
-                await createUser(user)
+                await createUser(user);
+                console.log("Seeded")
             } catch (error) {
-                if (error.name === "DatabaseError" && error.code === "23505") continue;
+                if (error.code === "23505") {
+                    console.error("Already seeded");
+                    continue;
+                }; // User already seeded
                 console.error(error);
-                return;
             };
         }
         console.log("Seeding admin...")
-        await createUser(admin)
+        try {
+            await createUser(admin)
+        } catch (error) {
+            if (error.code === "23505") {
+                console.error("Already seeded");
+                return
+            };
+            console.error(error)
+        }
 
     } catch (error) {
+        if (error.code === "23505") return;
         console.log("Error seeding users\n", error);
         throw error;
     }
