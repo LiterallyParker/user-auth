@@ -37,28 +37,8 @@ authRoutes.post("/register", async (req, res) => {
         });
 
     } catch (error) {
-        // Error handling
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                message: error.message,
-                errors: error.errors
-            });
-        }
-        if (error.name === "DuplicateError") {
-            return res.status(409).json({
-                message: error.message
-            });
-        };
-        if (error.name === "DatabaseError") {
-            return res.status(500).json({
-                message: "A database error occured"
-            });
-        };
-        // Unexpected Errors
-        console.error("Unexpected registration error:", error)
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+        console.error("Registration error:", error)
+        return res.status(error.code).json(error);
     };
 });
 
@@ -92,28 +72,8 @@ authRoutes.post("/login", async (req, res) => {
         });
 
     } catch (error) {
-        // Error handling
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                message: error.message,
-                errors: error.errors
-            });
-        };
-        if (error.name === "AuthError") {
-            return res.status(401).json({
-                message: error.message
-            });
-        };
-        if (error.name === "DatabaseError") {
-            return res.status(500).json({
-                message: "A database error occured"
-            });
-        };
-        // Unexpected Errors
-        console.error("Unexpected login error:", error)
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+        console.error("Login error:", error)
+        return res.status(error.code).json(error);
     };
 });
 
@@ -157,29 +117,8 @@ authRoutes.get("/verify-email", async (req, res) => {
         });
 
     } catch (error) {
-        // Error handling
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                message: error.message,
-                errors: error.errors
-            });
-        };
-        if (error.name === "TokenError") {
-            const statusCode = error.message.includes("expired") ? 410 : 400;
-            return res.status(statusCode).json({
-                message: error.message
-            });
-        };
-        if (error.name === "DatabaseError") {
-            return res.status(500).json({
-                message: "A database error occured"
-            });
-        };
-        // Unexpected Errors
-        console.error("Unexpected email verification error:", error)
-        return res.status(500).json({
-            message: "Internal server error"
-        });
+        console.error("Email verification error:", error)
+        return res.status(error.code).json(error);
     };
 });
 

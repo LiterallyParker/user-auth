@@ -1,5 +1,5 @@
 const pool = require("./pool");
-const { ANSIcolors, keysToSnake, keysToCamel, DatabaseError } = require("../util");
+const { ANSIcolors, keysToSnake, keysToCamel, ServerError, HTTPcodes } = require("../util");
 const { ulid } = require("ulid");
 
 const tableFactory = ({
@@ -56,11 +56,16 @@ const tableFactory = ({
                 : `Table '${tableName}' created successfully`,
         }
     } catch (error) {
-        throw new DatabaseError("Failed to create table in database", {
-            table: tableName,
-            operation: "CREATE",
-            code: error.code
-        });
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to create table in database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "CREATE",
+                psqlCode: error.code
+            }
+        );
     };
 };
 
@@ -93,11 +98,16 @@ const createFactory = ({
         // Return in camelCase
         return keysToCamel(result.rows[0]);
     } catch (error) {
-        throw new DatabaseError("Failed to add record to database", {
-            table: tableName,
-            operation: "CREATE",
-            code: error.code
-        })
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to add record to database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "CREATE",
+                psqlCode: error.code
+            }
+        );
     };
 };
 
@@ -129,11 +139,16 @@ const getFactory = ({
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
-        throw new DatabaseError("Failed to get data from database", {
-            table: tableName,
-            operation: "SELECT",
-            code: error.code
-        });
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to get data from database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "SELECT",
+                psqlCode: error.code
+            }
+        );
     };
 };
 
@@ -180,11 +195,16 @@ const updateFactory = ({
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
-        throw new DatabaseError("Failed to update data in database", {
-            table: tableName,
-            operation: "UPDATE",
-            code: error.code
-        });
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to update data in database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "UPDATE",
+                psqlCode: error.code
+            }
+        );
     };
 };
 
@@ -210,11 +230,16 @@ const deleteFactory = ({
         // Return row count
         return result.rowCount;
     } catch (error) {
-        throw new DatabaseError("Failed to single-delete from database", {
-            table: tableName,
-            operation: "DELETE",
-            code: error.code
-        });
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to single-delete from database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "DELETE",
+                psqlCode: error.code
+            }
+        );
     };
 };
 
@@ -276,11 +301,16 @@ const deleteBulkFactory = ({
         const result = await pool.query(query, values);
         return result.rowCount;
     } catch (error) {
-        throw new DatabaseError("Failed bulk-delete from database", {
-            table: tableName,
-            operation: "DELETE",
-            code: error.code
-        });
+        throw new ServerError(
+            type = "DatabaseError",
+            message = "Failed to bulk-delete from database",
+            code = HTTPcodes.internal,
+            options = {
+                table: tableName,
+                operation: "DELETE",
+                psqlCode: error.code
+            }
+        );
     };
 };
 

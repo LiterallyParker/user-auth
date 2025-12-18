@@ -1,6 +1,6 @@
 const { usernameConstraints, emailConstraints } = require("./constraints");
 const { handlePassword, comparePassword } = require("./password");
-const { handleConstraints, TokenError, NotFoundError, AuthError, DuplicateError } = require("../util");
+const { handleConstraints, ServerError, HTTPcodes } = require("../util");
 const { createAccessToken, createRefreshToken } = require("./jwt");
 const { createUser, getUser, getUserWithHash, updateUser } = require("../database/users");
 const { createToken, getToken, updateToken } = require("../database/tokens")
@@ -22,11 +22,19 @@ async function handleRegistration({ firstName, lastName, username, email, reqPas
 
     // Check for existing username
     const usernameExists = await getUser({ username }, ['id']);
-    if (usernameExists) throw new DuplicateError("Username already exists")
+    if (usernameExists) throw new ServerError(
+        type = "DuplicateUsername",
+        message = "Username already exists",
+        code = HTTPcodes.conflict
+    );
 
     // Check for existing email
     const emailExists = await getUser({ email }, ['id']);
-    if (emailExists) throw new DuplicateError("Email already exists")
+    if (emailExists) throw new ServerError(
+        type = "DuplicateEmail",
+        message = "Email already exists",
+        code = HTTPcodes.conflict
+    );
 
     // Handle password
     const hash = await handlePassword(reqPass, conPass);
@@ -73,7 +81,11 @@ async function handleLogin({ identifier, password }) {
     delete userWithHash?.hash;
 
     // Validate credentials
-    if (!userWithHash || !passwordMatch) throw new AuthError("Invalid credentials")
+    if (!userWithHash || !passwordMatch) throw new ServerError(
+        type = "Credential",
+        message = "Invalid credentials",
+        code = HTTPcodes.unauthorized
+    );
     
     // Retrieve full user record
     const user = await getUser(condition);
@@ -98,19 +110,36 @@ async function handleEmailVerification({ token }) {
     });
 
     // Verify a token was retrieved
-    if (!tokenRecord) throw new TokenError("Invalid token");
+    if (!tokenRecord) throw new ServerError(
+        type = "TokenInvalid",
+        message = "Invalid token",
+        code = HTTPcodes.badRequest
+    );
 
     // Verify the token has not been used or expired
-    if (tokenRecord.expiresAt && new Date(tokenRecord.expiresAt) < new Date()) throw new TokenError("Token is expired");
+    if (tokenRecord.expiresAt && new Date(tokenRecord.expiresAt) < new Date()) {
+        throw new ServerError(
+            type = "TokenExpired",
+            message = "Token is expired",
+            code = HTTPcodes.badRequest
+        )};
 
     // Retrieve the associated user
     const user = await getUser({ id: tokenRecord.userId });
 
     // Verify the user exists
-    if (!user) throw new NotFoundError("User not found - No user with that token's userId");
+    if (!user) throw new ServerError(
+        type = "UserNotFound",
+        message = "User not found - No user with that token's userId",
+        code = HTTPcodes.notFound
+    );
 
     // Check if the email is already verified
-    if (user.emailVerified) throw new TokenError("Email is already verified");
+    if (user.emailVerified) throw new ServerError(
+        type = "AlreadyVerified",
+        message = "Email is already verified",
+        code = HTTPcodes.conflict
+    );
 
     // Update the user's emailVerified status
     await updateUser({ id: user.id }, { emailVerified: true });

@@ -27,8 +27,7 @@ function verifyAccessToken(token) {
     } catch (error) {
         return {
             valid: false,
-            error: error.message,
-            expired: error.name === 'TokenExpiredError'
+            error
         };
     };
 };
@@ -43,8 +42,7 @@ function verifyRefreshToken(token) {
     } catch (error) {
         return {
             valid: false,
-            error: error.message,
-            expired: error.name === 'TokenExpiredError'
+            error
         };
     };
 };

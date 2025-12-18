@@ -20,7 +20,14 @@ function handleConstraints(constraints, string, fieldName = null) {
         .filter(([rule, regex]) => !regex.test(string))
         .map(([rule]) => rule);
     
-    if (failed.length > 0) throw new ValidationError(`${fieldName ? fieldName : "Field"} validation failed`, failed)
+    if (failed.length > 0) throw new ServerError(
+        type = "Constraint",
+        message = `${fieldName ? fieldName : "Field"} validation failed`,
+        code = HTTPcodes.badRequest,
+        options = {
+            failed
+        }
+    )
 };
 
 function requireFields(requiredFields, data) {
@@ -28,7 +35,14 @@ function requireFields(requiredFields, data) {
     requiredFields.forEach(field => {
         if (!data[field]) missing.push(field);
     });
-    if (missing.length > 0) throw new ValidationError("Missing a required field", missing);
+    if (missing.length > 0) throw new ServerError(
+        type = "MissingFields",
+        message = "One or more required fields are missing",
+        code = HTTPcodes.badRequest,
+        options = {
+            missing
+        }
+    );
 };
 
 function snakeToCamel(str) {
@@ -53,51 +67,25 @@ function keysToSnake(obj) {
     }, {});
 };
 
-class DatabaseError extends Error {
-    constructor(message, { table, operation, code } = {}) {
+class ServerError extends Error {
+    constructor(type, message, code, options = {}) {
         super(message);
-        this.name = "DatabaseError";
-        this.table = table;
-        this.operation = operation;
-        this.code = code;
-    };
-};
+        this.type = type;
+        this.code = code
+        Object.entries(options).forEach(([key, value]) => { this[key] = value });
+    }
+}
 
-class ValidationError extends Error {
-    constructor(message, errors = []) {
-        super(message);
-        this.name = "ValidationError";
-        this.errors = Array.isArray(errors) ? errors : [errors];
-    };
-};
-
-class TokenError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "TokenError"
-    };
-};
-
-class DuplicateError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "DuplicateError"
-    };
-};
-
-class NotFoundError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "NotFoundError"
-    };
-};
-
-class AuthError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "AuthError"
-    };
-};
+const HTTPcodes = {
+    okay: 200,
+    created: 201,
+    badRequest: 400,
+    unauthorized: 401,
+    forbidden: 403,
+    notFound: 404,
+    conflict: 409,
+    internal: 500
+}
 
 module.exports = {
     ANSIcolors,
@@ -107,10 +95,6 @@ module.exports = {
     camelToSnake,
     keysToCamel,
     keysToSnake,
-    DatabaseError,
-    ValidationError,
-    TokenError,
-    DuplicateError,
-    NotFoundError,
-    AuthError
+    ServerError,
+    HTTPcodes
 };
