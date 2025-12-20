@@ -37,7 +37,7 @@ authRoutes.post("/register", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Registration error:", error)
+        console.error(error);
         return res.status(error.code).json(error);
     };
 });
@@ -72,7 +72,7 @@ authRoutes.post("/login", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Login error:", error)
+        console.error(error);
         return res.status(error.code).json(error);
     };
 });
@@ -117,7 +117,7 @@ authRoutes.get("/verify-email", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Email verification error:", error)
+        console.error(error);
         return res.status(error.code).json(error);
     };
 });

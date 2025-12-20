@@ -56,6 +56,7 @@ const tableFactory = ({
                 : `Table '${tableName}' created successfully`,
         }
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to create table in database",
@@ -98,6 +99,7 @@ const createFactory = ({
         // Return in camelCase
         return keysToCamel(result.rows[0]);
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to add record to database",
@@ -139,6 +141,7 @@ const getFactory = ({
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to get data from database",
@@ -184,17 +187,13 @@ const updateFactory = ({
         // RETURNING
         const returningCols = returning.join(", ");
         // Build query
-        const query = `
-                UPDATE ${tableName}
-                SET ${setClause}
-                WHERE ${whereClause}
-                RETURNING ${returningCols};
-            `;
+        const query = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause} RETURNING ${returningCols};`;
         // Use query
         const result = await pool.query(query, values);
         // Return in camelCase
         return result.rows[0] ? keysToCamel(result.rows[0]) : undefined;
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to update data in database",
@@ -230,6 +229,7 @@ const deleteFactory = ({
         // Return row count
         return result.rowCount;
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to single-delete from database",
@@ -301,6 +301,7 @@ const deleteBulkFactory = ({
         const result = await pool.query(query, values);
         return result.rowCount;
     } catch (error) {
+        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to bulk-delete from database",

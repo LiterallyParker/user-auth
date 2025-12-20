@@ -39,4 +39,6 @@ server.get("/", (req, res) => {
 });
 
 startCronJobs()
-server.listen(PORT, () => console.log(`Server is listening\nClient: ${ANSIcolors.yellow}${process.env.CLIENT_URL}${ANSIcolors.reset}`));
+server.listen(PORT, () => console.log(`Server is listening on port ${PORT}
+  Client: ${ANSIcolors.yellow}${process.env.CLIENT_URL}${ANSIcolors.reset}`
+));

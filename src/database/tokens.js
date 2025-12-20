@@ -15,9 +15,9 @@ const getToken = factories.getFactory({
 
 const updateToken = factories.updateFactory({
     tableName,
-    allowedFields: ["token", "expires_at"],
+    allowedFields: ["token", "expires_at", "used_at"],
     allowedConditions: ["id", "user_id", "token_type"],
-    returning: ["id", "updated_at"]
+    returning: ["id"]
 });
 
 const deleteToken = factories.deleteFactory({
