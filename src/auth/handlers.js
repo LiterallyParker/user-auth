@@ -4,7 +4,7 @@ const { handleConstraints, ServerError, HTTPcodes } = require("../util");
 const { createAccessToken, createRefreshToken } = require("./jwt");
 const { createUser, getUser, getUserWithHash, updateUser } = require("../database/users");
 const { createToken, getToken, updateToken } = require("../database/tokens")
-const { genEmailToken } = require("./tokens");
+const { genHexToken } = require("./tokens");
 const sendEmail = require("../emailer/sender");
 
 async function handleRegistration({ firstName, lastName, username, email, reqPass, conPass }) {
@@ -43,7 +43,7 @@ async function handleRegistration({ firstName, lastName, username, email, reqPas
     const user = await createUser({ firstName, lastName, username, email, hash });
 
     // Generate email verification
-    const emailToken = genEmailToken();
+    const emailToken = genHexToken();
 
     // Add token to database, then send verification email
     createToken({
@@ -105,7 +105,7 @@ async function handleLogin({ identifier, password }) {
 async function handleEmailVerification({ token }) {
     // Retrieve the token record from the database
     const tokenRecord = await getToken({
-        token: token.trim(),
+        token,
         tokenType: "EmailVerification"
     });
 

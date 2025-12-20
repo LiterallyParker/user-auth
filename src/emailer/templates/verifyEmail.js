@@ -29,9 +29,6 @@ module.exports = function template({ token, username }) {
 
                 <a href="${verifyURL}">Verify Email</a>
 
-                <p>Or copy/paste this link into your browser:</p>
-                <p>${verifyURL}</p>
-
                 <p>This link expires in 24 hours.</p>
 
                 <div class="footer">

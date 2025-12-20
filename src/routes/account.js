@@ -59,13 +59,8 @@ accountRoutes.delete("/", (req, res) => {
     res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
 });
 
-accountRoutes.delete("/sessions", (req, res) => {
-    // Revoke all sessions
-    res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
-});
-
 accountRoutes.delete("/sessions/:id", (req, res) => {
-    // Revoke a single session
+    // Revoke a session
     res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
 });
 

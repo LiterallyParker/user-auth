@@ -1,9 +1,9 @@
 const crypto = require("crypto");
 
-function genEmailToken() {
+function genHexToken() {
     return crypto.randomBytes(32).toString("hex");
 };
 
 module.exports = {
-    genEmailToken
+    genHexToken
 };
