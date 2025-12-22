@@ -37,7 +37,7 @@ async function handleRegistration({ firstName, lastName, username, email, reqPas
     );
 
     // Handle password
-    const hash = await handlePassword(reqPass, conPass);
+    const hash = await handlePassword({ reqPass, conPass });
 
     // Create user record
     const user = await createUser({ firstName, lastName, username, email, hash });
@@ -86,7 +86,7 @@ async function handleLogin({ identifier, password }) {
         message = "Invalid credentials",
         code = HTTPcodes.unauthorized
     );
-    
+
     // Retrieve full user record
     const user = await getUser(condition);
 
@@ -122,7 +122,8 @@ async function handleEmailVerification({ token }) {
             type = "TokenExpired",
             message = "Token is expired",
             code = HTTPcodes.badRequest
-        )};
+        )
+    };
 
     // Retrieve the associated user
     const user = await getUser({ id: tokenRecord.userId });
@@ -146,10 +147,41 @@ async function handleEmailVerification({ token }) {
 
     // Mark the token as used
     await updateToken({ id: tokenRecord.id }, { usedAt: new Date() });
+
+    return { message: "Email verified successfully" };
+};
+
+async function handleForgotPassword({ email }) {
+    // Trim email
+    email = email.trim();
+
+    // Ensure email is valid
+    handleConstraints(emailConstraints, email);
+
+    // Find a user with the provided email
+    const user = await getUser({ email }, ["id", "email"]);
+    if (!user) throw new ServerError(
+        type = "UserNotFound",
+        message = "No user with the provided email was found",
+        code = HTTPcodes.notFound
+    );
+
+    // Generate password reset token
+    const resetToken = genHexToken();
+
+    // Add token to database, then send reset email
+    createToken({
+        userId: user.id,
+        tokenType: "PasswordReset",
+        token: resetToken
+    }).then(() => sendEmail({ to: user.email, type: "ResetPassword", data: { token: resetToken } }));
+
+    return { message: "Password reset email sent"}
 };
 
 module.exports = {
     handleRegistration,
     handleLogin,
-    handleEmailVerification
+    handleEmailVerification,
+    handleForgotPassword
 };

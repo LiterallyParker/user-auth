@@ -1,5 +1,5 @@
-module.exports = function template({ token, username }) {
-    const verifyURL = `${process.env.CLIENT_URL}/api/auth/verify-email?token=${token}`;
+module.exports = function template({ token }) {
+    const resetURL = `${process.env.CLIENT_URL}/api/auth/reset-password?token=${token}`;
 
     return `
         <!DOCTYPE html>
@@ -23,16 +23,15 @@ module.exports = function template({ token, username }) {
         </head>
         <body>
             <div class="container">
-                <h2>Verify Your Email</h2>
-                <p>Hi ${username || 'there'}!</p>
+                <h2>Reset Your Password</h2>
                 <p>A password reset has been requested by your account. To reset your password, click the link below:</p>
 
-                <a href="${verifyURL}">Verify Email</a>
+                <a href="${resetURL}">Reset Password</a>
 
                 <p>This link expires in 24 hours.</p>
 
                 <div class="footer">
-                    <p>If you didn't request this reset, please ignore this email.</p>
+                    <p>If you didn't request a password reset, please ignore this email.</p>
                 </div>
             </div>
         </body>

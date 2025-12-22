@@ -20,11 +20,7 @@ async function comparePassword(password, hash) {
     return response;
 };
 
-async function handlePasswordResetRequest() {
-
-};
-
-async function handlePassword(reqPass, conPass) {
+async function handlePassword({ reqPass, conPass }) {
     // Trim whitespace
     reqPass = reqPass.trim();
     conPass = conPass.trim();

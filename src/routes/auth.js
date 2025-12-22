@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { handleRegistration, handleLogin, handleEmailVerification } = require("../auth/handlers");
+const { handleRegistration, handleLogin, handleEmailVerification, handleForgotPassword } = require("../auth/handlers");
 const { requireFields } = require("../util");
 const authRoutes = Router();
 
@@ -18,7 +18,7 @@ authRoutes.post("/register", async (req, res) => {
     try {
         // Verify required fields
         requireFields(["username", "email", "reqPass", "conPass"], req.body);
-        
+
         // Handle registration
         const result = await handleRegistration(req.body);
 
@@ -53,7 +53,7 @@ authRoutes.post("/login", async (req, res) => {
     try {
         // Verify required fields
         requireFields(["identifier", "password"], req.body);
-        
+
         // Handle login
         const result = await handleLogin(req.body);
 
@@ -83,15 +83,34 @@ authRoutes.post("/logout", async (req, res) => {
 });
 
 authRoutes.post("/forgot-password", async (req, res) => {
-    // Initiate forgot password instructions
-    // Strict rate limiting
-    res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
+    /*
+    * Expects body:
+    * {
+    *   email: string (required)
+    * }
+    * 
+    */
+    try {
+        // Verify required fields
+        requireFields(["email"], req.body);
+    
+        // Handle reset request
+        const response = await handleForgotPassword(req.body);
+    
+        // Return
+        return res.status(200).json(response);
+    } catch (error) {
+        console.log(error)
+        return res.status(error.code).json(error);
+    };
 });
 
-authRoutes.post("/reset-password", async (req, res) => {
-    // Complete password reset
-    // query: ?token={reset_token}
-    res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
+authRoutes.get("/reset-password", async (req, res) => {
+    /*
+    * Expects query:
+    * ?token={resetToken}
+    */
+    res.status(200).json({ message: `Hit ${req.method} ${req.path}`})
 });
 
 authRoutes.post("/refresh", async (req, res) => {
@@ -102,7 +121,7 @@ authRoutes.post("/refresh", async (req, res) => {
 authRoutes.get("/verify-email", async (req, res) => {
     /*
     * Expects query:
-    * ?token={email_verification_token}
+    * ?token={emailToken}
     */
     try {
         // Verify required fields

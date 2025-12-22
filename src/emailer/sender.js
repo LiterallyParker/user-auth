@@ -4,6 +4,10 @@ const templates = {
     VerifyEmail: {
         subject: "Verify Your Email Address",
         template: require("./templates/verifyEmail")
+    },
+    ResetPassword: {
+        subject: "Reset Your Password",
+        template: require("./templates/resetPassword")
     }
 };
 
