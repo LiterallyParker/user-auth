@@ -9,15 +9,6 @@ module.exports = function template({ token, username }) {
             <style>
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .button {
-                    display: inline-block;
-                    padding: 12px 24px;
-                    background-color: #007bff;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin: 20px 0;
-                }
                 .footer { margin-top: 30px; font-size: 12px; color: #666; }
             </style>
         </head>

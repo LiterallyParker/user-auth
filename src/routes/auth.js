@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { handleRegistration, handleLogin, handleEmailVerification, handleForgotPassword } = require("../auth/handlers");
 const { requireFields } = require("../util");
+const { verifyRefreshToken, createAccessToken } = require("../auth/jwt");
 const authRoutes = Router();
 
 authRoutes.post("/register", async (req, res) => {
@@ -40,7 +41,7 @@ authRoutes.post("/register", async (req, res) => {
         console.error(error);
         return res.status(error.code).json(error);
     };
-});
+}); // Y
 
 authRoutes.post("/login", async (req, res) => {
     /*
@@ -75,12 +76,12 @@ authRoutes.post("/login", async (req, res) => {
         console.error(error);
         return res.status(error.code).json(error);
     };
-});
+}); // Y
 
 authRoutes.post("/logout", async (req, res) => {
     // Log out of the current session
     res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
-});
+}); // N
 
 authRoutes.post("/forgot-password", async (req, res) => {
     /*
@@ -103,7 +104,7 @@ authRoutes.post("/forgot-password", async (req, res) => {
         console.log(error)
         return res.status(error.code).json(error);
     };
-});
+}); // Y
 
 authRoutes.get("/reset-password", async (req, res) => {
     /*
@@ -111,12 +112,25 @@ authRoutes.get("/reset-password", async (req, res) => {
     * ?token={resetToken}
     */
     res.status(200).json({ message: `Hit ${req.method} ${req.path}`})
-});
+}); // N
 
 authRoutes.post("/refresh", async (req, res) => {
-    // Refresh access tokens
-    res.status(200).json({ message: `Hit ${req.method} ${req.path}` });
-});
+    /*
+    * Expects cookie refreshToken
+    */
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) {
+        return res.status(401).json({ error: "Refresh token missing" });
+    };
+
+    const result = verifyRefreshToken(refreshToken);
+    if (!result.valid) {
+        return res.status(403).json({ error: "Invalid refresh token" });
+    };
+
+    const accessToken = createAccessToken({ id: result.data.id, email: result.data.email });
+    return res.status(200).json({ accessToken });
+}); // Y
 
 authRoutes.get("/verify-email", async (req, res) => {
     /*
@@ -139,6 +153,6 @@ authRoutes.get("/verify-email", async (req, res) => {
         console.error(error);
         return res.status(error.code).json(error);
     };
-});
+}); // Y
 
 module.exports = authRoutes;
