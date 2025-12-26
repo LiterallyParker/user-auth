@@ -1,7 +1,7 @@
 const { usernameConstraints, emailConstraints } = require("./constraints");
 const { handlePassword, comparePassword } = require("./password");
 const { handleConstraints, ServerError, HTTPcodes } = require("../util");
-const { createAccessToken, createRefreshToken } = require("./jwt");
+const { createAccessToken, createRefreshToken, verifyRefreshToken } = require("./jwt");
 const { createUser, getUser, getUserWithHash, updateUser } = require("../database/users");
 const { createToken, getToken, updateToken } = require("../database/tokens")
 const { genHexToken } = require("./tokens");
@@ -179,9 +179,30 @@ async function handleForgotPassword({ email }) {
     return { message: "Password reset email sent"}
 };
 
+async function handleRefresh({ refreshToken }) {
+    if (!refreshToken) throw new ServerError(
+        type = "MissingRefreshToken",
+        message = "Refresh token is missing",
+        code = 401
+    );
+
+    const result = verifyRefreshToken(refreshToken);
+    if (!result.valid) throw new ServerError(
+        type = "InvalidRefreshToken",
+        message = "Refresh token is invalid",
+        code = 403
+    );
+
+    const user = await getUser({ id: result.data.id }, ["id", "username", "email"]);
+    const accessToken = createAccessToken(user);
+    const newRefreshToken = createRefreshToken({ id: user.id });
+    return { accessToken, refreshToken: newRefreshToken }
+};
+
 module.exports = {
     handleRegistration,
     handleLogin,
     handleEmailVerification,
-    handleForgotPassword
+    handleForgotPassword,
+    handleRefresh
 };
