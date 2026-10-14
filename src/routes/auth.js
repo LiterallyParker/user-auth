@@ -39,9 +39,9 @@ authRoutes.post("/register", async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        return res.status(error.code).json({ error: error.type, message: error.message });
+        return res.status(error.code).json({ error });
     };
-}); // Y
+}); // Complete
 
 authRoutes.post("/login", async (req, res) => {
     /*
@@ -74,9 +74,9 @@ authRoutes.post("/login", async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        return res.status(error.code).json({ error: error.type, message: error.message });
+        return res.status(error.code).json({ error });
     };
-}); // Y
+}); // Complete
 
 authRoutes.post("/logout", async (req, res) => {
     res.clearCookie("refreshToken", {
@@ -86,7 +86,7 @@ authRoutes.post("/logout", async (req, res) => {
         path: "/"
     });
     res.status(200).json({ message: "Logged out successfully" });
-}); // N
+}); // In Progress
 
 authRoutes.post("/forgot-password", async (req, res) => {
     /*
@@ -109,7 +109,7 @@ authRoutes.post("/forgot-password", async (req, res) => {
         console.log(error)
         return res.status(error.code).json({ error: error.type, message: error.message });
     };
-}); // Y
+}); // Complete
 
 authRoutes.get("/reset-password", async (req, res) => {
     /*
@@ -117,7 +117,7 @@ authRoutes.get("/reset-password", async (req, res) => {
     * ?token={resetToken}
     */
     res.status(200).json({ message: `Hit ${req.method} ${req.path}` })
-}); // N
+}); // Not Started
 
 authRoutes.post("/refresh", async (req, res) => {
     /*
@@ -141,7 +141,7 @@ authRoutes.post("/refresh", async (req, res) => {
         return res.status(error.code).json({ error: error.type, message: error.message });
     }
 
-}); // Y
+}); // Complete
 
 authRoutes.get("/verify-email", async (req, res) => {
     /*
@@ -164,6 +164,6 @@ authRoutes.get("/verify-email", async (req, res) => {
         console.error(error);
         return res.status(error.code).json(error);
     };
-}); // Y
+}); // Complete
 
 module.exports = authRoutes;

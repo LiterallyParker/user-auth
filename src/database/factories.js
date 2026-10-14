@@ -99,7 +99,6 @@ const createFactory = ({
         // Return in camelCase
         return keysToCamel(result.rows[0]);
     } catch (error) {
-        console.error(error);
         throw new ServerError(
             type = "DatabaseError",
             message = "Failed to add record to database",

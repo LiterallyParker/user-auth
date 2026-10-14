@@ -85,18 +85,18 @@ async function seedUsers() {
                 await createUser(user);
                 console.log("Seeded")
             } catch (error) {
-                if (error.code === "23505") {
+                if (error.psqlCode === "23505") {
                     console.error("Already seeded");
                     continue;
                 }; // User already seeded
-                console.error(error);
+                console.error(error.code);
             };
         }
         console.log("Seeding admin...")
         try {
             await createUser(admin)
         } catch (error) {
-            if (error.code === "23505") {
+            if (error.psqlCode === "23505") {
                 console.error("Already seeded");
                 return
             };
@@ -104,7 +104,7 @@ async function seedUsers() {
         }
 
     } catch (error) {
-        if (error.code === "23505") return;
+        if (error.psqlCode === "23505") return;
         console.log("Error seeding users\n", error);
         throw error;
     }

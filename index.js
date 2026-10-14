@@ -16,10 +16,10 @@ const morgan = require("morgan");
 const server = express();
 const httpServer = createServer(server);
 const io = new Server(httpServer);
-const PORT = process.env.PORT;
 const routes = require("./src/routes");
 const startCronJobs = require("./src/cron")
 const { ANSIcolors } = require("./src/util");
+const PORT = process.env.PORT;
 
 server.use(cors());
 server.use(morgan('tiny'));
