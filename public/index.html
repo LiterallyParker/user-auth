@@ -23,11 +23,97 @@
                 <span class="secure-dot"></span>
                 <span>The house keeps your secrets</span>
             </div>
+            <nav class="topnav" aria-label="Site">
+                <button class="topnav-link" id="nav-home" type="button">Home</button>
+                <button class="topnav-link" id="nav-account" type="button">Sign in</button>
+            </nav>
             <button class="button button-quiet topbar-logout" id="logout-button" type="button" hidden>Sign out</button>
         </header>
 
         <main>
-            <section class="auth-layout" id="auth-view" aria-labelledby="auth-title">
+            <section class="home" id="home-view" aria-labelledby="home-title">
+                <div class="home-hero">
+                    <div class="home-copy">
+                        <p class="eyebrow">THE HOUSE IS OPEN</p>
+                        <h1 id="home-title">Where every night<br>is a <span>good hand.</span></h1>
+                        <p class="intro-copy" id="home-lead">Parker's Poker is a cozy little corner of the internet with the lights low, the felt green-ish, and a seat saved just for you.</p>
+                        <div class="home-actions">
+                            <button class="button button-primary" id="home-primary" type="button">Take a seat <span aria-hidden="true">→</span></button>
+                            <button class="button button-secondary" id="home-secondary" type="button">I’m a regular</button>
+                        </div>
+                    </div>
+                    <div class="card-fan" aria-hidden="true">
+                        <div class="playing-card"><b>A</b><i>♠</i><b>A</b></div>
+                        <div class="playing-card is-red"><b>K</b><i>♥</i><b>K</b></div>
+                        <div class="playing-card"><b>Q</b><i>♣</i><b>Q</b></div>
+                        <div class="playing-card is-red"><b>J</b><i>♦</i><b>J</b></div>
+                        <div class="playing-card is-red"><b>10</b><i>♥</i><b>10</b></div>
+                    </div>
+                </div>
+
+                <section class="home-section" aria-labelledby="tables-title">
+                    <div class="home-heading">
+                        <p class="eyebrow">TONIGHT AT THE TABLES</p>
+                        <h2 id="tables-title">Pull up a chair</h2>
+                        <p class="panel-copy">The tables are still being built, so consider this a sneak peek at the lineup.</p>
+                    </div>
+                    <div class="table-grid">
+                        <article class="table-card">
+                            <span class="table-suit" aria-hidden="true">♠</span>
+                            <h3>Texas Hold’em</h3>
+                            <p>The classic. Two cards, five on the board, and a poker face you’ve been practicing.</p>
+                            <span class="soon-tag">Opening soon</span>
+                        </article>
+                        <article class="table-card">
+                            <span class="table-suit is-red" aria-hidden="true">♥</span>
+                            <h3>Five-Card Draw</h3>
+                            <p>Old-school and friendly. Swap what you don’t love, keep what you do.</p>
+                            <span class="soon-tag">Opening soon</span>
+                        </article>
+                        <article class="table-card">
+                            <span class="table-suit" aria-hidden="true">♣</span>
+                            <h3>Friendly Stakes</h3>
+                            <p>Low-pressure games for learning the ropes with good company.</p>
+                            <span class="soon-tag">Opening soon</span>
+                        </article>
+                        <article class="table-card">
+                            <span class="table-suit is-red" aria-hidden="true">♦</span>
+                            <h3>The Roulette Room</h3>
+                            <p>Round and round she goes. Yes, it’s the wheel you’ve been watching.</p>
+                            <span class="soon-tag">Opening soon</span>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="home-section" aria-labelledby="rules-title">
+                    <div class="home-heading">
+                        <p class="eyebrow">HOUSE RULES</p>
+                        <h2 id="rules-title">The fine print, made friendly</h2>
+                    </div>
+                    <div class="rules-grid">
+                        <article class="rule-card">
+                            <h3><span aria-hidden="true">♠</span> Your seat, your say</h3>
+                            <p>Update your player card, change your email, or tweak your preferences any time.</p>
+                        </article>
+                        <article class="rule-card">
+                            <h3><span aria-hidden="true">♥</span> Know who’s at the table</h3>
+                            <p>See every device signed in to your account and show unfamiliar ones the door.</p>
+                        </article>
+                        <article class="rule-card">
+                            <h3><span aria-hidden="true">♣</span> Take it with you</h3>
+                            <p>Download your data whenever you like, or cash out for good when you’re done.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="home-cta">
+                    <h2>Ready when you are.</h2>
+                    <p class="panel-copy">The first hand’s on the house.</p>
+                    <button class="button button-primary" id="home-cta-button" type="button">Join the table <span aria-hidden="true">→</span></button>
+                </section>
+            </section>
+
+            <section class="auth-layout" id="auth-view" aria-labelledby="auth-title" hidden>
                 <div class="auth-intro">
                     <p class="eyebrow">A SEAT IS WAITING FOR YOU</p>
                     <h1 id="auth-title">Welcome to<br><span>Parker's Poker.</span></h1>

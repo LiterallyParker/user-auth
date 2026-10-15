@@ -97,7 +97,32 @@
         byId("forgot-form").hidden = true;
     }
 
+    function showHome() {
+        showView("home");
+        const signedIn = Boolean(state.accessToken && state.account);
+        const name = signedIn ? fullName(state.account).split(" ")[0] : "";
+        byId("home-lead").textContent = signedIn
+            ? `Good to see you, ${name}. Your seat is right where you left it.`
+            : "Parker's Poker is a cozy little corner of the internet with the lights low, the felt green-ish, and a seat saved just for you.";
+        byId("home-primary").firstChild.textContent = signedIn ? "My account " : "Take a seat ";
+        byId("home-secondary").hidden = signedIn;
+        byId("home-cta-button").firstChild.textContent = signedIn ? "Back to my account " : "Join the table ";
+    }
+
+    function goToAccount(mode = "login") {
+        if (state.accessToken && state.account) {
+            showView("dashboard");
+            return;
+        }
+        showView("auth");
+        setAuthMode(mode);
+    }
+
     function showView(view) {
+        byId("home-view").hidden = view !== "home";
+        byId("nav-home").classList.toggle("is-active", view === "home");
+        byId("nav-account").classList.toggle("is-active", view === "auth" || view === "dashboard");
+        byId("nav-account").textContent = state.accessToken ? "My account" : "Sign in";
         byId("auth-view").hidden = view !== "auth";
         byId("dashboard-view").hidden = view !== "dashboard";
         byId("reset-view").hidden = view !== "reset";
@@ -695,11 +720,26 @@
         }
     }
 
+    function bindHome() {
+        const toHome = event => {
+            event.preventDefault();
+            showHome();
+            window.scrollTo({ top: 0 });
+        };
+        document.querySelector(".brand").addEventListener("click", toHome);
+        byId("nav-home").addEventListener("click", toHome);
+        byId("nav-account").addEventListener("click", () => goToAccount("login"));
+        byId("home-primary").addEventListener("click", () => goToAccount("register"));
+        byId("home-secondary").addEventListener("click", () => goToAccount("login"));
+        byId("home-cta-button").addEventListener("click", () => goToAccount("register"));
+    }
+
     async function initialize() {
         bindAuthForms();
         bindDashboardForms();
         bindPasswordUX();
         bindAvatarPreview();
+        bindHome();
 
         const query = new URLSearchParams(window.location.search);
         const resetToken = query.get("resetPassword");
@@ -721,8 +761,7 @@
                 signOutLocally();
             }
         } else {
-            showView("auth");
-            setAuthMode("login");
+            showHome();
         }
     }
 
