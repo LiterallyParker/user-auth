@@ -8,8 +8,8 @@ async function runScript(scriptPath, label) {
         console.log(`\n${ANSIcolors.blue}-= ${label} =-\n${ANSIcolors.yellow}-= ${scriptPath} =-\n${ANSIcolors.reset}`);
         const child = spawn("node", [scriptPath]);
 
-        child.stdout.on("data", (data) => process.stdout.write(`  ${ANSIcolors.green}${data}${ANSIcolors.reset}`));
-        child.stderr.on("data", (data) => process.stderr.write(`  ${ANSIcolors.red}${data}${ANSIcolors.reset}`));
+        child.stdout.on("data", (data) => process.stdout.write(`${ANSIcolors.green}${data}${ANSIcolors.reset}`));
+        child.stderr.on("data", (data) => process.stderr.write(`${ANSIcolors.red}${data}${ANSIcolors.reset}`));
 
         child.on("close", (code) => {
             if (code === 0) {

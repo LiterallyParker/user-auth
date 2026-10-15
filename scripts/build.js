@@ -69,7 +69,7 @@ async function createDB() {
     try {
         await createExtenstions();
         await createFunctions();
-        console.log("\n  Creating table 'users'...");
+        console.log("\nCreating table 'users'...");
         const usersResult = await createUsersTable();
         console.log(usersResult.message + "\n");
         console.log("Creating table 'Tokens'...");
