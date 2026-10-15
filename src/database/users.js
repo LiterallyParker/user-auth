@@ -9,7 +9,7 @@ const createUser = factories.createFactory({
 
 const getUser = factories.getFactory({
     tableName,
-    allowedFields: ["id", "first_name", "last_name", "username", "email", "email_verified", "created_at", "updated_at"],
+    allowedFields: ["id", "first_name", "last_name", "username", "email", "email_verified", "bio", "avatar_url", "settings", "created_at", "updated_at"],
     allowedConditions: ["id", "username", "email"]
 });
 
@@ -22,12 +22,12 @@ const getPublicUser = factories.getFactory({
 const getUserWithHash = factories.getFactory({
     tableName,
     allowedFields: ["id", "hash"],
-    allowedConditions: ["username", "email"]
+    allowedConditions: ["id", "username", "email"]
 });
 
 const updateUser = factories.updateFactory({
     tableName,
-    allowedFields: ["first_name", "last_name", "username", "email", "hash", "email_verified"],
+    allowedFields: ["first_name", "last_name", "username", "email", "hash", "email_verified", "bio", "avatar_url", "settings"],
     allowedConditions: ["id"],
     returning: ["id", "updated_at"]
 });

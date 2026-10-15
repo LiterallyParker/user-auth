@@ -17,7 +17,7 @@ module.exports = (jobs = []) => {
                     console.log(`${ANSIcolors.cyan}Running cron job ${jobName}`)
                     await job();
                 } catch (error) {
-                    console.error(`${ANSIcolors.red}Error in cron job ${jobName}`)
+                    console.error(`${ANSIcolors.red}Error in cron job ${jobName}${ANSIcolors.reset}`, error);
                 }
             });
 

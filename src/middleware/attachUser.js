@@ -1,4 +1,5 @@
 const { verifyAccessToken } = require("../auth/jwt");
+const { getSession } = require("../database/sessions");
 
 module.exports = async (req, res, next) => {
     try {
@@ -8,20 +9,26 @@ module.exports = async (req, res, next) => {
             return next()
         };
         if (!authHeader.startsWith(prefix)) {
-            console.error("Malformed authorization header.");
             return next();
         };
         const accessToken = authHeader.slice(prefix.length);
         const response = verifyAccessToken(accessToken);
-        if (!response.valid) {
+        if (!response.valid || !response.data.sid || !response.data.id) {
             return next();
         };
+
+        const session = await getSession({
+            id: response.data.sid,
+            userId: response.data.id
+        });
+        if (!session || session.revokedAt || new Date(session.expiresAt) <= new Date()) {
+            return next();
+        }
 
         req.user = response.data;
         return next();
         
     } catch (error) {
-        console.error("Error while verifying JWTs\n", error);
-        next();
+        return next(error);
     };
 };

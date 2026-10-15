@@ -21,6 +21,14 @@ async function comparePassword(password, hash) {
 };
 
 async function handlePassword({ reqPass, conPass }) {
+    if (typeof reqPass !== "string" || typeof conPass !== "string") {
+        throw new ServerError(
+            type = "InvalidPassword",
+            message = "Password and confirmation must be strings",
+            code = HTTPcodes.badRequest
+        );
+    }
+
     // Trim whitespace
     reqPass = reqPass.trim();
     conPass = conPass.trim();

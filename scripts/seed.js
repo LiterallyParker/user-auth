@@ -111,9 +111,18 @@ async function seedUsers() {
 };
 
 async function seedDB() {
-    await seedUsers();
-    await pool.end();
-    console.log("Seeding complete");
+    try {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("Refusing to seed development accounts in production");
+        }
+        await seedUsers();
+        console.log("Seeding complete");
+    } finally {
+        await pool.end();
+    }
 };
 
-seedDB();
+seedDB().catch(error => {
+    console.error("Seeding failed\n", error);
+    process.exitCode = 1;
+});

@@ -1,18 +1,347 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Template Site</title>
-	<link rel="stylesheet" href="./index.css">
-	<script src="script.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d0809">
+    <title>Parker's Poker</title>
+    <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/theme.css">
+    <script src="/script.js" defer></script>
 </head>
+<body>
+    <div class="app-shell">
+        <div class="suit-field" aria-hidden="true">
+            <span>♠</span><span>♥</span><span>♣</span><span>♦</span><span>♠</span><span>♦</span><span>♣</span><span>♥</span>
+        </div>
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="Parker's Poker home">
+                <span class="brand-mark">♠</span>
+                <span>Parker's <span class="brand-light">Poker</span></span>
+            </a>
+            <div class="topbar-meta">
+                <span class="secure-dot"></span>
+                <span>The house keeps your secrets</span>
+            </div>
+            <button class="button button-quiet topbar-logout" id="logout-button" type="button" hidden>Sign out</button>
+        </header>
 
-<header><div id="header-div"></div></header>
+        <main>
+            <section class="auth-layout" id="auth-view" aria-labelledby="auth-title">
+                <div class="auth-intro">
+                    <p class="eyebrow">A SEAT IS WAITING FOR YOU</p>
+                    <h1 id="auth-title">Welcome to<br><span>Parker's Poker.</span></h1>
+                    <p class="intro-copy">Pull up a chair. Sign in to tidy up your profile, tweak your preferences, and keep an eye on who's sitting at your table.</p>
+                    <div class="roulette" aria-hidden="true"><div class="roulette-ball"></div><div class="roulette-hub">♠</div></div>
+                    <div class="trust-note"><span aria-hidden="true">♦</span> Your cards stay close to your chest. We never peek.</div>
+                </div>
 
-<body><div id="body-div"></div></body>
+                <div class="auth-card">
+                    <div class="auth-tabs" role="tablist" aria-label="Authentication">
+                        <button class="auth-tab is-active" id="login-tab" type="button" role="tab" aria-selected="true" aria-controls="login-panel">Sign in</button>
+                        <button class="auth-tab" id="register-tab" type="button" role="tab" aria-selected="false" aria-controls="register-panel">Join the table</button>
+                    </div>
 
-<footer><div id="footer-div"></div></footer>
+                    <div class="notice" id="auth-notice" role="status" aria-live="polite" hidden></div>
 
+                    <section class="auth-panel" id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+                        <h2>Welcome back, player</h2>
+                        <p class="panel-copy">Show us your credentials and we'll deal you in.</p>
+                        <form id="login-form">
+                            <label class="field">
+                                <span>Email or username</span>
+                                <input name="identifier" autocomplete="username" required>
+                            </label>
+                            <label class="field">
+                                <span>Password</span>
+                                <input name="password" type="password" autocomplete="current-password" required>
+                            </label>
+                            <button class="text-button forgot-link" type="button" id="show-forgot">Forgot password?</button>
+                            <button class="button button-primary button-full" type="submit">Deal me in <span aria-hidden="true">→</span></button>
+                        </form>
+                        <form class="subform" id="forgot-form" hidden>
+                            <div class="subform-heading">
+                                <h3>Lost your chips?</h3>
+                                <button class="icon-button" type="button" id="hide-forgot" aria-label="Close">×</button>
+                            </div>
+                            <p class="panel-copy">If that email has a seat at our table, we’ll send a reset link your way.</p>
+                            <label class="field">
+                                <span>Email address</span>
+                                <input name="email" type="email" autocomplete="email" required>
+                            </label>
+                            <button class="button button-secondary button-full" type="submit">Send reset link</button>
+                        </form>
+                    </section>
+
+                    <section class="auth-panel" id="register-panel" role="tabpanel" aria-labelledby="register-tab" hidden>
+                        <h2>Grab a seat</h2>
+                        <p class="panel-copy">A few quick details and the first hand’s on us.</p>
+                        <form id="register-form">
+                            <div class="field-row">
+                                <label class="field">
+                                    <span>First name <small>Optional</small></span>
+                                    <input name="firstName" autocomplete="given-name">
+                                </label>
+                                <label class="field">
+                                    <span>Last name <small>Optional</small></span>
+                                    <input name="lastName" autocomplete="family-name">
+                                </label>
+                            </div>
+                            <label class="field">
+                                <span>Username</span>
+                                <input name="username" autocomplete="username" minlength="3" maxlength="30" required>
+                            </label>
+                            <label class="field">
+                                <span>Email address</span>
+                                <input name="email" type="email" autocomplete="email" required>
+                            </label>
+                            <label class="field">
+                                <span>Password</span>
+                                <input name="reqPass" type="password" autocomplete="new-password" required data-password-input>
+                            </label>
+                            <div class="password-checklist" data-password-checklist hidden>
+                                <span data-rule="length">12 characters minimum</span>
+                                <span data-rule="lower">One lowercase letter</span>
+                                <span data-rule="upper">One uppercase letter</span>
+                                <span data-rule="number">One number</span>
+                                <span data-rule="special">One special character (!@#$%^&*)</span>
+                            </div>
+                            <label class="field">
+                                <span>Confirm password</span>
+                                <input name="conPass" type="password" autocomplete="new-password" required data-password-confirm>
+                            </label>
+                            <p class="match-hint" data-match-hint aria-live="polite"></p>
+                            <p class="field-hint">Pick a strong hand: 12+ characters with upper and lowercase letters, a number, and a special character.</p>
+                            <button class="button button-primary button-full" type="submit">Take a seat <span aria-hidden="true">→</span></button>
+                        </form>
+                    </section>
+                </div>
+            </section>
+
+            <section class="dashboard" id="dashboard-view" hidden>
+                <aside class="sidebar">
+                    <div class="user-mini">
+                        <div class="avatar" id="sidebar-avatar">A</div>
+                        <div class="user-mini-copy">
+                            <strong id="sidebar-name">Your account</strong>
+                            <span id="sidebar-email"></span>
+                        </div>
+                    </div>
+                    <nav class="side-nav" aria-label="Account sections">
+                        <button class="nav-item is-active" data-section="overview"><span class="nav-icon">◫</span> Overview</button>
+                        <button class="nav-item" data-section="profile"><span class="nav-icon">◉</span> Profile</button>
+                        <button class="nav-item" data-section="preferences"><span class="nav-icon">☷</span> Preferences</button>
+                        <button class="nav-item" data-section="security"><span class="nav-icon">⌑</span> Security</button>
+                        <button class="nav-item" data-section="sessions"><span class="nav-icon">▤</span> Sessions</button>
+                    </nav>
+                    <div class="sidebar-bottom">
+                        <span class="secure-dot"></span> The house is watching the door
+                    </div>
+                </aside>
+
+                <div class="dashboard-main">
+                    <div class="dashboard-heading">
+                        <div>
+                            <p class="eyebrow" id="section-eyebrow">THE HIGH-ROLLER LOUNGE</p>
+                            <h1 id="section-title" tabindex="-1">Overview</h1>
+                        </div>
+                        <button class="button button-quiet mobile-logout" id="mobile-logout-button" type="button">Sign out</button>
+                    </div>
+                    <div class="notice dashboard-notice" id="dashboard-notice" role="status" aria-live="polite" hidden></div>
+
+                    <section class="content-section is-visible" id="section-overview">
+                        <div class="welcome-card">
+                            <div>
+                                <p class="eyebrow">YOUR SEAT AT THE TABLE</p>
+                                <h2>Welcome back, <span id="welcome-name">there</span>.</h2>
+                                <p>Your chips, cards, and corner of the table are all right here. Make yourself comfortable.</p>
+                            </div>
+                            <div class="welcome-orb" aria-hidden="true"><span class="orb-suit">♥</span></div>
+                        </div>
+                        <div class="overview-grid">
+                            <article class="info-card">
+                                <span class="card-kicker">PLAYER CARD</span>
+                                <h3 id="overview-username">@username</h3>
+                                <p id="overview-email">—</p>
+                                <button class="text-button" data-go="profile">Edit profile <span aria-hidden="true">→</span></button>
+                            </article>
+                            <article class="info-card">
+                                <span class="card-kicker">EMAIL STATUS</span>
+                                <h3 id="email-status">Not verified</h3>
+                                <p id="email-status-copy">Verify your email so we can keep you in the loop (and out of the spam pile).</p>
+                                <button class="text-button" id="overview-resend" type="button">Send verification email <span aria-hidden="true">→</span></button>
+                            </article>
+                            <article class="info-card">
+                                <span class="card-kicker">SEATS TAKEN</span>
+                                <h3><span id="session-count">—</span> devices</h3>
+                                <p>See who else is sitting at your table.</p>
+                                <button class="text-button" data-go="sessions">Manage sessions <span aria-hidden="true">→</span></button>
+                            </article>
+                        </div>
+                        <article class="panel-card account-summary">
+                            <div class="panel-title">
+                                <div><span class="card-kicker">THE FINE PRINT</span><h3>Your hand at a glance</h3></div>
+                                <div class="summary-actions">
+                                    <button class="text-button" data-go="profile">Edit details</button>
+                                    <button class="text-button" id="export-account" type="button">Export data</button>
+                                </div>
+                            </div>
+                            <dl class="detail-list">
+                                <div><dt>Username</dt><dd id="detail-username">—</dd></div>
+                                <div><dt>Email</dt><dd id="detail-email">—</dd></div>
+                                <div><dt>Member since</dt><dd id="detail-created">—</dd></div>
+                            </dl>
+                        </article>
+                    </section>
+
+                    <section class="content-section" id="section-profile" hidden>
+                        <article class="panel-card">
+                            <div class="panel-title">
+                                <div><span class="card-kicker">YOUR INFORMATION</span><h2>Profile</h2></div>
+                            </div>
+                            <form id="profile-form" class="form-grid">
+                                <label class="field"><span>First name</span><input name="firstName" maxlength="100"></label>
+                                <label class="field"><span>Last name</span><input name="lastName" maxlength="100"></label>
+                                <div class="avatar-editor field-span">
+                                    <img id="avatar-preview" alt="Profile image preview" hidden>
+                                    <div class="avatar-fallback" id="avatar-fallback">A</div>
+                                    <div class="avatar-editor-actions">
+                                        <label class="field"><span>Profile image URL</span><input name="avatarUrl" type="url" maxlength="2048" placeholder="https://example.com/photo.jpg"></label>
+                                        <button class="text-button" id="remove-avatar" type="button">Remove image</button>
+                                    </div>
+                                </div>
+                                <label class="field field-span"><span>Bio <small>Up to 5,000 characters</small></span><textarea name="bio" rows="4" maxlength="5000" placeholder="A little about you, the bluffing style, favorite hand…"></textarea></label>
+                                <div class="form-actions field-span"><button class="button button-primary" type="submit">Save my player card</button></div>
+                            </form>
+                            <div class="divider"></div>
+                            <div class="panel-title">
+                                <div><span class="card-kicker">EMAIL ADDRESS</span><h3>Change email</h3></div>
+                            </div>
+                            <p class="panel-copy">We’ll mail a verification link to your new address. Your current password is the secret handshake.</p>
+                            <form id="email-form" class="form-grid">
+                                <label class="field"><span>New email</span><input name="email" type="email" autocomplete="email" required></label>
+                                <label class="field"><span>Current password</span><input name="currentPassword" type="password" autocomplete="current-password" required></label>
+                                <div class="form-actions field-span"><button class="button button-secondary" type="submit">Update email</button></div>
+                            </form>
+                        </article>
+                    </section>
+
+                    <section class="content-section" id="section-preferences" hidden>
+                        <article class="panel-card">
+                            <div class="panel-title">
+                                <div><span class="card-kicker">HOUSE RULES</span><h2>Preferences</h2></div>
+                                <button class="button button-secondary button-small" id="save-settings" type="button">Save preferences</button>
+                            </div>
+                            <p class="panel-copy">Set your house rules. They’re saved to your account, but the house isn’t enforcing them anywhere else just yet.</p>
+                            <fieldset class="settings-list">
+                                <legend class="sr-only">Account preferences</legend>
+                                <label class="setting-row"><span><strong>Profile privacy</strong><small>Saved preference; profile visibility is not currently enforced.</small></span><input type="checkbox" name="privacy" form="settings-form"></label>
+                                <label class="setting-row"><span><strong>Data sharing</strong><small>Saved preference; data-sharing behavior is not currently connected.</small></span><input type="checkbox" name="dataSharing" form="settings-form"></label>
+                                <label class="setting-row"><span><strong>Cookies</strong><small>Saved preference; cookie behavior is not currently controlled by this setting.</small></span><input type="checkbox" name="cookies" form="settings-form"></label>
+                                <label class="setting-row"><span><strong>Email registry</strong><small>Saved preference; email subscriptions are not currently connected.</small></span><input type="checkbox" name="emailRegistries" form="settings-form"></label>
+                            </fieldset>
+                            <form id="settings-form" hidden></form>
+                        </article>
+                    </section>
+
+                    <section class="content-section" id="section-security" hidden>
+                        <article class="panel-card">
+                            <div class="panel-title">
+                                <div><span class="card-kicker">THE VAULT</span><h2>Security</h2></div>
+                            </div>
+                            <div class="security-check">
+                                <div><h3>Prove it’s you</h3><p class="panel-copy">Confirm your password before any high-stakes move.</p></div>
+                                <form id="verify-password-form" class="inline-form">
+                                    <label class="field"><span class="sr-only">Current password</span><input name="password" type="password" autocomplete="current-password" placeholder="Current password" required></label>
+                                    <button class="button button-secondary" type="submit">Verify</button>
+                                </form>
+                            </div>
+                            <div class="divider"></div>
+                            <div class="panel-title">
+                                <div><span class="card-kicker">PASSWORD</span><h3>Change password</h3></div>
+                            </div>
+                            <form id="change-password-form" class="form-grid">
+                                <label class="field field-span"><span>Current password</span><input name="currentPassword" type="password" autocomplete="current-password" required></label>
+                                <label class="field"><span>New password</span><input name="reqPass" type="password" autocomplete="new-password" required data-password-input></label>
+                                <label class="field"><span>Confirm new password</span><input name="conPass" type="password" autocomplete="new-password" required data-password-confirm></label>
+                                <div class="password-checklist field-span" data-password-checklist hidden>
+                                    <span data-rule="length">12 characters minimum</span>
+                                    <span data-rule="lower">One lowercase letter</span>
+                                    <span data-rule="upper">One uppercase letter</span>
+                                    <span data-rule="number">One number</span>
+                                    <span data-rule="special">One special character (!@#$%^&*)</span>
+                                </div>
+                                <p class="match-hint field-span" data-match-hint aria-live="polite"></p>
+                                <p class="field-hint field-span">Changing your password sends everyone away from the table (all devices are signed out).</p>
+                                <div class="form-actions field-span"><button class="button button-primary" type="submit">Change password</button></div>
+                            </form>
+                            <div class="divider"></div>
+                            <div class="danger-zone">
+                                <div><span class="card-kicker">LAST HAND</span><h3>Cash out for good</h3><p class="panel-copy">Permanently delete your account and everything with it. There’s no coming back to this table.</p></div>
+                                <button class="button button-danger" id="open-delete-dialog" type="button">Delete account</button>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="content-section" id="section-sessions" hidden>
+                        <article class="panel-card">
+                            <div class="panel-title">
+                                <div><span class="card-kicker">WHO’S AT THE TABLE</span><h2>Sessions</h2></div>
+                                <button class="button button-secondary button-small" id="refresh-sessions" type="button">Refresh</button>
+                            </div>
+                            <p class="panel-copy">Spot someone you don’t recognize? Show them the door. Revoking this device signs you out too.</p>
+                            <div class="session-list" id="session-list"></div>
+                        </article>
+                    </section>
+                </div>
+            </section>
+
+            <section class="reset-layout" id="reset-view" hidden>
+                <div class="reset-card">
+                    <div class="brand-mark reset-mark">♠</div>
+                    <p class="eyebrow">A FRESH SHUFFLE</p>
+                    <h1>Deal yourself a new password.</h1>
+                    <p class="panel-copy">Make it a winning hand: 12+ characters with upper and lowercase letters, a number, and a special character.</p>
+                    <div class="notice" id="reset-notice" role="status" aria-live="polite" hidden></div>
+                    <form id="reset-form">
+                        <input type="hidden" name="token">
+                        <label class="field"><span>New password</span><input name="reqPass" type="password" autocomplete="new-password" required data-password-input></label>
+                        <div class="password-checklist" data-password-checklist hidden>
+                            <span data-rule="length">12 characters minimum</span>
+                            <span data-rule="lower">One lowercase letter</span>
+                            <span data-rule="upper">One uppercase letter</span>
+                            <span data-rule="number">One number</span>
+                            <span data-rule="special">One special character (!@#$%^&*)</span>
+                        </div>
+                        <label class="field"><span>Confirm new password</span><input name="conPass" type="password" autocomplete="new-password" required data-password-confirm></label>
+                        <p class="match-hint" data-match-hint aria-live="polite"></p>
+                        <button class="button button-primary button-full" type="submit">Shuffle &amp; save</button>
+                    </form>
+                    <a class="text-button reset-back" href="/">Back to the lobby</a>
+                </div>
+            </section>
+
+            <dialog class="confirm-dialog" id="delete-dialog" aria-labelledby="delete-dialog-title">
+                <form id="delete-account-form">
+                    <p class="eyebrow">THE LAST HAND</p>
+                    <h2 id="delete-dialog-title">Leave the table for good?</h2>
+                    <p class="panel-copy">This permanently deletes <strong id="delete-account-name">your account</strong> and its profile, preferences, and sessions. This cannot be undone.</p>
+                    <div class="notice" id="delete-notice" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
+                    <label class="field"><span>Type your username to confirm</span><input name="confirmUsername" id="delete-confirm-username" autocomplete="off" required></label>
+                    <label class="field"><span>Current password</span><input name="password" type="password" autocomplete="current-password" required></label>
+                    <div class="dialog-actions">
+                        <button class="button button-secondary" id="cancel-delete" type="button">Keep my account</button>
+                        <button class="button button-danger" id="confirm-delete" type="submit" disabled>Delete permanently</button>
+                    </div>
+                </form>
+            </dialog>
+        </main>
+
+        <footer class="site-footer">
+            <span>Parker's Poker · Play responsibly, bluff harmlessly</span>
+            <span>Protected with signed authentication tokens</span>
+        </footer>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+</body>
 </html>

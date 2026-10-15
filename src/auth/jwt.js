@@ -1,10 +1,12 @@
 const jwt = require("jsonwebtoken");
+const { ulid } = require("ulid");
 
 function createAccessToken(payload) {
     const token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "15m",
         algorithm: "HS256",
-        issuer: process.env.JWT_ISSUER
+        issuer: process.env.JWT_ISSUER,
+        jwtid: ulid()
     });
     return token;
 };
@@ -13,7 +15,8 @@ function createRefreshToken(payload) {
     return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
         expiresIn: "7d",
         algorithm: "HS256",
-        issuer: process.env.JWT_ISSUER
+        issuer: process.env.JWT_ISSUER,
+        jwtid: ulid()
     });
 };
 

@@ -10,7 +10,7 @@ const createToken = factories.createFactory({
 const getToken = factories.getFactory({
     tableName,
     allowedFields: ["id", "user_id", "token_type", "token", "expires_at", "created_at", "used_at"],
-    allowedConditions: ["id", "user_id", "token_type"]
+    allowedConditions: ["id", "user_id", "token_type", "token"]
 });
 
 const updateToken = factories.updateFactory({
@@ -30,10 +30,20 @@ const deleteBulkTokens = factories.deleteBulkFactory({
     allowedConditions: ["expires_at", "used_at"]
 });
 
+async function deleteUserTokensByType(userId, tokenType) {
+    const pool = require("./pool");
+    const result = await pool.query(
+        "DELETE FROM tokens WHERE user_id = $1 AND token_type = $2;",
+        [userId, tokenType]
+    );
+    return result.rowCount;
+}
+
 module.exports = {
     createToken,
     getToken,
     updateToken,
     deleteToken,
-    deleteBulkTokens
+    deleteBulkTokens,
+    deleteUserTokensByType
 };

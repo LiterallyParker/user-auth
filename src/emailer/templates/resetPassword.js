@@ -1,5 +1,5 @@
 module.exports = function template({ token }) {
-    const resetURL = `${process.env.CLIENT_URL}/api/auth/reset-password?token=${token}`;
+    const resetURL = `${process.env.CLIENT_URL}/api/auth/reset-password?token=${encodeURIComponent(token)}`;
 
     return `
         <!DOCTYPE html>
@@ -14,15 +14,15 @@ module.exports = function template({ token }) {
         </head>
         <body>
             <div class="container">
-                <h2>Reset Your Password</h2>
-                <p>A password reset has been requested by your account. To reset your password, click the link below:</p>
+                <h2>Lost your chips? No worries.</h2>
+                <p>Someone (hopefully you) asked to reset the password for your Parker's Poker account. Click the link below to deal yourself a fresh one:</p>
 
                 <a href="${resetURL}">Reset Password</a>
 
-                <p>This link expires in 24 hours.</p>
+                <p>This link expires in 1 hour.</p>
 
                 <div class="footer">
-                    <p>If you didn't request a password reset, please ignore this email.</p>
+                    <p>If you didn't request this, just ignore this email. Your seat at the table is safe.</p>
                 </div>
             </div>
         </body>

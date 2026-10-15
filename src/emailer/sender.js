@@ -2,11 +2,11 @@ const transporter = require("./transporter");
 
 const templates = {
     VerifyEmail: {
-        subject: "Verify Your Email Address",
+        subject: "Parker's Poker: Please Verify Your Email",
         template: require("./templates/verifyEmail")
     },
     ResetPassword: {
-        subject: "Reset Your Password",
+        subject: "Parker's Poker: Reset Your Password",
         template: require("./templates/resetPassword")
     }
 };

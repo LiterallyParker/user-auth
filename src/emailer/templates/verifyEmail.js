@@ -1,5 +1,5 @@
 module.exports = function template({ token, username }) {
-    const verifyURL = `${process.env.CLIENT_URL}/api/auth/verify-email?token=${token}`;
+    const verifyURL = `${process.env.CLIENT_URL}/?verifyEmail=${encodeURIComponent(token)}`;
 
     return `
         <!DOCTYPE html>
@@ -14,16 +14,16 @@ module.exports = function template({ token, username }) {
         </head>
         <body>
             <div class="container">
-                <h2>Verify Your Email</h2>
+                <h2>Welcome to Parker's Poker</h2>
                 <p>Hi ${username || 'there'}!</p>
-                <p>Thanks for signing up. Please verify your email address by clicking the button below:</p>
+                <p>Thanks for pulling up a chair. Please confirm your email by clicking the link below and we'll save your seat:</p>
 
                 <a href="${verifyURL}">Verify Email</a>
 
-                <p>This link expires in 24 hours.</p>
+                <p>This link expires in 1 hour.</p>
 
                 <div class="footer">
-                    <p>If you didn't create an account, please ignore this email.</p>
+                    <p>If you didn't sign up for Parker's Poker, you can safely ignore this email.</p>
                 </div>
             </div>
         </body>
