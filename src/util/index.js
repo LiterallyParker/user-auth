@@ -17,33 +17,42 @@ const ANSIcolors = {
 
 function handleConstraints(constraints, string, fieldName = null) {
     const failed = Object.entries(constraints)
-        .filter(([rule, regex]) => !regex.test(string))
+        .filter(([, regex]) => !regex.test(string))
         .map(([rule]) => rule);
-    
-    if (failed.length > 0) throw new ServerError(
-        type = "Constraint",
-        message = `${fieldName ? fieldName : "Field"} validation failed`,
-        code = HTTPcodes.badRequest,
-        options = {
-            failed
-        }
-    )
-};
+
+    if (failed.length > 0) {
+        throw new ServerError(
+            "Constraint",
+            `${fieldName || "Field"} validation failed`,
+            HTTPcodes.badRequest,
+            { failed }
+        );
+    }
+}
 
 function requireFields(requiredFields, data) {
-    const missing = [];
-    requiredFields.forEach(field => {
-        if (!data[field]) missing.push(field);
+    const missing = requiredFields.filter(field => !data[field]);
+    if (missing.length > 0) {
+        throw new ServerError(
+            "MissingFields",
+            "One or more required fields are missing",
+            HTTPcodes.badRequest,
+            { missing }
+        );
+    }
+}
+
+// Sends a ServerError as JSON; anything unexpected becomes a generic 500
+function sendRouteError(res, error) {
+    const status = Number.isInteger(error?.code) ? error.code : HTTPcodes.internal;
+    if (status >= 500) console.error(error);
+    return res.status(status).json({
+        error: error?.type || "InternalServerError",
+        message: status >= 500 ? "An unexpected error occurred" : error.message,
+        ...(error?.missing ? { missing: error.missing } : {}),
+        ...(error?.failed ? { failed: error.failed } : {})
     });
-    if (missing.length > 0) throw new ServerError(
-        type = "MissingFields",
-        message = "One or more required fields are missing",
-        code = HTTPcodes.badRequest,
-        options = {
-            missing
-        }
-    );
-};
+}
 
 function snakeToCamel(str) {
     return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -91,6 +100,7 @@ module.exports = {
     ANSIcolors,
     handleConstraints,
     requireFields,
+    sendRouteError,
     snakeToCamel,
     camelToSnake,
     keysToCamel,

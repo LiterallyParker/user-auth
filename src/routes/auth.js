@@ -8,7 +8,7 @@ const {
     handleRefresh,
     handleLogout
 } = require("../auth/handlers");
-const { requireFields } = require("../util");
+const { requireFields, sendRouteError } = require("../util");
 const authRoutes = Router();
 
 function getSessionMetadata(req) {
@@ -25,17 +25,6 @@ const refreshCookieOptions = {
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000
 };
-
-function sendRouteError(res, error) {
-    const status = Number.isInteger(error?.code) ? error.code : 500;
-    if (status >= 500) console.error(error);
-    return res.status(status).json({
-        error: error?.type || "InternalServerError",
-        message: status >= 500 ? "An unexpected error occurred" : error.message,
-        ...(error?.missing ? { missing: error.missing } : {}),
-        ...(error?.failed ? { failed: error.failed } : {})
-    });
-}
 
 authRoutes.post("/register", async (req, res) => {
     /*

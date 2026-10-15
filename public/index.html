@@ -7,6 +7,7 @@
     <title>Parker's Poker</title>
     <link rel="stylesheet" href="/index.css">
     <link rel="stylesheet" href="/theme.css">
+    <script src="/socket.io/socket.io.js" defer></script>
     <script src="/script.js" defer></script>
 </head>
 <body>
@@ -25,12 +26,70 @@
             </div>
             <nav class="topnav" aria-label="Site">
                 <button class="topnav-link" id="nav-home" type="button">Home</button>
+                <button class="topnav-link" id="nav-players" type="button">Players</button>
+                <button class="topnav-link" id="nav-messages" type="button">Messages<span class="nav-badge" id="nav-badge" hidden></span></button>
                 <button class="topnav-link" id="nav-account" type="button">Sign in</button>
             </nav>
             <button class="button button-quiet topbar-logout" id="logout-button" type="button" hidden>Sign out</button>
         </header>
 
         <main>
+            <section class="players" id="players-view" aria-labelledby="players-title" hidden>
+                <div class="players-head">
+                    <p class="eyebrow">THE CARD ROOM</p>
+                    <h1 id="players-title">Find a player</h1>
+                    <p class="intro-copy">Look up a fellow regular by username and see what they’ve chosen to share.</p>
+                </div>
+                <form class="players-search" id="players-form" role="search">
+                    <label class="field"><span>Username</span><input id="players-query" name="q" type="search" minlength="2" maxlength="30" autocomplete="off" placeholder="Start typing a username…" required></label>
+                    <button class="button button-primary" type="submit">Search</button>
+                </form>
+                <div class="notice" id="players-notice" role="status" aria-live="polite" tabindex="-1" hidden></div>
+                <section class="friends-panel" id="friends-panel" aria-labelledby="friends-title" hidden>
+                    <h2 id="friends-title">Your table</h2>
+                    <div class="friends-group" id="friends-incoming-group" hidden><h3>Waiting on you</h3><div class="friends-list" id="friends-incoming"></div></div>
+                    <div class="friends-group"><h3>Friends</h3><div class="friends-list" id="friends-list"></div></div>
+                    <div class="friends-group" id="friends-outgoing-group" hidden><h3>Requests you sent</h3><div class="friends-list" id="friends-outgoing"></div></div>
+                </section>
+                <div class="players-layout">
+                    <div class="players-results" id="players-results" aria-live="polite"></div>
+                    <article class="player-card" id="player-card" hidden>
+                        <div class="avatar player-avatar" id="player-avatar"></div>
+                        <h2 id="player-username"></h2>
+                        <p class="player-name" id="player-name" hidden></p>
+                        <p class="player-bio" id="player-bio" hidden></p>
+                        <p class="player-since" id="player-since" hidden></p>
+                        <p class="player-private" id="player-private" hidden>This player keeps their cards close to their chest, so only their username and picture are shown. Friends get a peek.</p>
+                        <div class="player-actions" id="player-actions"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="messages" id="messages-view" aria-labelledby="messages-title" hidden>
+                <div class="players-head">
+                    <p class="eyebrow">THE LOUNGE</p>
+                    <h1 id="messages-title">Messages</h1>
+                    <p class="intro-copy">Private chats, friends only. No strangers at this table.</p>
+                </div>
+                <div class="notice" id="messages-notice" role="status" aria-live="polite" tabindex="-1" hidden></div>
+                <div class="messages-layout">
+                    <div class="conversation-list" id="conversation-list" aria-label="Your friends"></div>
+                    <section class="thread" id="thread" hidden>
+                        <header class="thread-head">
+                            <span class="avatar" id="thread-avatar"></span>
+                            <strong id="thread-name"></strong>
+                        </header>
+                        <div class="thread-body" id="thread-body" role="log" aria-live="polite"></div>
+                        <form class="thread-form" id="thread-form">
+                            <label class="sr-only" for="thread-input">Message</label>
+                            <textarea id="thread-input" name="body" rows="1" maxlength="256" placeholder="Deal a message…" required></textarea>
+                            <button class="button button-primary" type="submit">Send</button>
+                        </form>
+                    </section>
+                    <p class="empty-state thread-empty" id="thread-empty">Pick a friend to start chatting.</p>
+                </div>
+            </section>
+
             <section class="home" id="home-view" aria-labelledby="home-title">
                 <div class="home-hero">
                     <div class="home-copy">
@@ -259,8 +318,8 @@
                             </article>
                             <article class="info-card">
                                 <span class="card-kicker">SEATS TAKEN</span>
-                                <h3><span id="session-count">—</span> devices</h3>
-                                <p>See who else is sitting at your table.</p>
+                                <h3><span id="session-count">—</span> <span id="session-count-label">devices</span></h3>
+                                <p>Other logged in devices.</p>
                                 <button class="text-button" data-go="sessions">Manage sessions <span aria-hidden="true">→</span></button>
                             </article>
                         </div>
@@ -321,7 +380,7 @@
                             <p class="panel-copy">Set your house rules. They’re saved to your account, but the house isn’t enforcing them anywhere else just yet.</p>
                             <fieldset class="settings-list">
                                 <legend class="sr-only">Account preferences</legend>
-                                <label class="setting-row"><span><strong>Profile privacy</strong><small>Saved preference; profile visibility is not currently enforced.</small></span><input type="checkbox" name="privacy" form="settings-form"></label>
+                                <label class="setting-row"><span><strong>Profile privacy</strong><small>When on, only your friends can see your name, bio and join date; everyone else sees your username and picture. Turn it off to share them with everyone.</small></span><input type="checkbox" name="privacy" form="settings-form"></label>
                                 <label class="setting-row"><span><strong>Data sharing</strong><small>Saved preference; data-sharing behavior is not currently connected.</small></span><input type="checkbox" name="dataSharing" form="settings-form"></label>
                                 <label class="setting-row"><span><strong>Cookies</strong><small>Saved preference; cookie behavior is not currently controlled by this setting.</small></span><input type="checkbox" name="cookies" form="settings-form"></label>
                                 <label class="setting-row"><span><strong>Email registry</strong><small>Saved preference; email subscriptions are not currently connected.</small></span><input type="checkbox" name="emailRegistries" form="settings-form"></label>

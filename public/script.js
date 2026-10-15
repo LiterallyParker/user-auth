@@ -5,7 +5,7 @@
     const state = {
         accessToken: null,
         account: null,
-        activeSection: "overview",
+        returnTo: null,
         settings: null,
         toastTimer: null
     };
@@ -109,18 +109,74 @@
         byId("home-cta-button").firstChild.textContent = signedIn ? "Back to my account " : "Join the table ";
     }
 
-    function goToAccount(mode = "login") {
+    function showAuth(mode = "login") {
         if (state.accessToken && state.account) {
-            showView("dashboard");
+            void go("/my_account", { replace: true });
             return;
         }
         showView("auth");
         setAuthMode(mode);
     }
 
+    function showDashboard(section = "overview") {
+        if (!requireSignIn()) return;
+        if (!DASHBOARD_SECTIONS.includes(section)) {
+            void go("/my_account", { replace: true });
+            return;
+        }
+        showView("dashboard");
+        switchSection(section);
+    }
+
+    // Sends signed-out visitors to the sign-in page and remembers where they were headed
+    function requireSignIn(message) {
+        if (state.accessToken && state.account) return true;
+        state.returnTo = window.location.pathname;
+        void go("/sign_in", { replace: true });
+        if (message) showNotice(byId("auth-notice"), message);
+        return false;
+    }
+
+    const DASHBOARD_SECTIONS = ["overview", "profile", "preferences", "security", "sessions"];
+    const sectionPath = section => (section === "overview" ? "/my_account" : `/my_account/${section}`);
+    const userPath = (base, username) => `${base}/${encodeURIComponent(username)}`;
+
+    const ROUTES = [
+        [/^\/$/, showHome],
+        [/^\/sign_in$/, () => showAuth("login")],
+        [/^\/register$/, () => showAuth("register")],
+        [/^\/my_account(?:\/([a-z]+))?$/, showDashboard],
+        [/^\/players(?:\/([^/]+))?$/, showPlayers],
+        [/^\/messages(?:\/([^/]+))?$/, showMessages]
+    ];
+
+    async function renderRoute() {
+        const path = window.location.pathname.replace(/\/+$/, "") || "/";
+        for (const [pattern, handler] of ROUTES) {
+            const match = path.match(pattern);
+            if (match) {
+                window.scrollTo({ top: 0 });
+                return handler(...match.slice(1).map(part => part && decodeURIComponent(part)));
+            }
+        }
+        return go("/", { replace: true });
+    }
+
+    function go(path, { replace = false } = {}) {
+        if (path !== window.location.pathname) {
+            window.history[replace ? "replaceState" : "pushState"]({}, "", path);
+        }
+        return renderRoute();
+    }
+
     function showView(view) {
         byId("home-view").hidden = view !== "home";
+        byId("players-view").hidden = view !== "players";
+        byId("messages-view").hidden = view !== "messages";
+        byId("nav-messages").classList.toggle("is-active", view === "messages");
+        if (view !== "messages") stopThreadPolling();
         byId("nav-home").classList.toggle("is-active", view === "home");
+        byId("nav-players").classList.toggle("is-active", view === "players");
         byId("nav-account").classList.toggle("is-active", view === "auth" || view === "dashboard");
         byId("nav-account").textContent = state.accessToken ? "My account" : "Sign in";
         byId("auth-view").hidden = view !== "auth";
@@ -130,7 +186,6 @@
     }
 
     function switchSection(section) {
-        state.activeSection = section;
         document.querySelectorAll(".nav-item").forEach(button => {
             button.classList.toggle("is-active", button.dataset.section === section);
         });
@@ -159,12 +214,24 @@
         return [account.firstName, account.lastName].filter(Boolean).join(" ") || account.username || "Your account";
     }
 
+    const DEFAULT_SUITS = ["♥", "♦", "♣", "♠"];
+
+    // Stable "random" pick per account so the avatar doesn't change on reload
+    function applyDefaultAvatar(element, account) {
+        const seed = String(account.id || account.username || account.email || "player");
+        let hash = 0;
+        for (const char of seed) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+        element.textContent = DEFAULT_SUITS[hash % 4];
+        element.dataset.bg = (hash >> 3) % 2 ? "red" : "black";
+        element.dataset.ink = (hash >> 5) % 2 ? "red" : "black";
+    }
+
     function renderAccount(account) {
         state.account = account;
         const name = fullName(account);
         byId("sidebar-name").textContent = name;
         byId("sidebar-email").textContent = account.email || "";
-        byId("sidebar-avatar").textContent = name.trim().charAt(0).toUpperCase() || "A";
+        applyDefaultAvatar(byId("sidebar-avatar"), account);
         if (account.avatarUrl) {
             byId("sidebar-avatar").style.backgroundImage = `url("${account.avatarUrl.replace(/["\\]/g, "")}")`;
             byId("sidebar-avatar").classList.add("has-image");
@@ -172,6 +239,7 @@
         } else {
             byId("sidebar-avatar").style.backgroundImage = "";
             byId("sidebar-avatar").classList.remove("has-image");
+            applyDefaultAvatar(byId("sidebar-avatar"), account);
         }
         byId("welcome-name").textContent = name.split(" ")[0];
         byId("overview-username").textContent = `@${account.username}`;
@@ -200,7 +268,7 @@
         const value = byId("profile-form").elements.avatarUrl.value.trim();
         const preview = byId("avatar-preview");
         const fallback = byId("avatar-fallback");
-        fallback.textContent = fullName(state.account || {}).trim().charAt(0).toUpperCase() || "A";
+        applyDefaultAvatar(fallback, state.account || {});
         if (!value) {
             preview.hidden = true;
             preview.removeAttribute("src");
@@ -261,6 +329,7 @@
         try {
             const result = await request("/account/sessions", {}, { authenticated: true });
             byId("session-count").textContent = result.sessions.length;
+            byId("session-count-label").textContent = result.sessions.length === 1 ? "device" : "devices";
             if (!result.sessions.length) {
                 list.innerHTML = '<p class="empty-state">It’s just you at the table right now.</p>';
                 return;
@@ -309,24 +378,33 @@
         });
     }
 
-    async function enterDashboard() {
-        showView("dashboard");
-        switchSection("overview");
+    async function startSession() {
         try {
             await loadAccount();
             await loadSessions();
+            void loadConversations();
+            startBadgePolling();
+            connectLive();
         } catch (error) {
             state.accessToken = null;
-            showView("auth");
             throw error;
         }
+    }
+
+    // After signing in, return to the page that asked for it
+    async function finishSignIn() {
+        const destination = state.returnTo || "/my_account";
+        state.returnTo = null;
+        await go(destination, { replace: true });
     }
 
     function signOutLocally(message) {
         state.accessToken = null;
         state.account = null;
-        showView("auth");
-        setAuthMode("login");
+        stopBadgePolling();
+        disconnectLive();
+        byId("nav-badge").hidden = true;
+        void go("/sign_in", { replace: true });
         if (message) showNotice(byId("auth-notice"), message, "success");
     }
 
@@ -476,8 +554,8 @@
     }
 
     function bindAuthForms() {
-        byId("login-tab").addEventListener("click", () => setAuthMode("login"));
-        byId("register-tab").addEventListener("click", () => setAuthMode("register"));
+        byId("login-tab").addEventListener("click", () => go("/sign_in"));
+        byId("register-tab").addEventListener("click", () => go("/register"));
         byId("show-forgot").addEventListener("click", () => {
             byId("forgot-form").hidden = false;
             hideNotice(byId("auth-notice"));
@@ -492,7 +570,8 @@
                     body: JSON.stringify(formData(event.currentTarget))
                 });
                 state.accessToken = result.accessToken;
-                await enterDashboard();
+                await startSession();
+                await finishSignIn();
             } catch (error) {
                 handleError(byId("auth-notice"), error, form);
             }
@@ -506,7 +585,8 @@
                     body: JSON.stringify(formData(event.currentTarget))
                 });
                 state.accessToken = result.accessToken;
-                await enterDashboard();
+                await startSession();
+                await go("/my_account", { replace: true });
                 showNotice(byId("dashboard-notice"), "You’re in! Check your inbox (and spam folder) for a verification link. You can resend it from Overview.", "success");
             } catch (error) {
                 handleError(byId("auth-notice"), error, form);
@@ -530,10 +610,10 @@
 
     function bindDashboardForms() {
         document.querySelectorAll(".nav-item").forEach(button => {
-            button.addEventListener("click", () => switchSection(button.dataset.section));
+            button.addEventListener("click", () => go(sectionPath(button.dataset.section)));
         });
         document.querySelectorAll("[data-go]").forEach(button => {
-            button.addEventListener("click", () => switchSection(button.dataset.go));
+            button.addEventListener("click", () => go(sectionPath(button.dataset.go)));
         });
 
         bindSubmit(byId("profile-form"), "Saving…", async (event, form) => {
@@ -611,13 +691,18 @@
         });
 
         byId("open-delete-dialog").addEventListener("click", () => {
+            byId("delete-confirm-username").placeholder = state.account?.username || "";
             byId("delete-dialog").showModal();
             byId("delete-confirm-username").focus();
         });
         byId("cancel-delete").addEventListener("click", () => byId("delete-dialog").close());
-        byId("delete-confirm-username").addEventListener("input", event => {
-            byId("confirm-delete").disabled = event.currentTarget.value.trim() !== state.account?.username;
-        });
+        const syncDeleteButton = () => {
+            const normalize = value => value.trim().replace(/^@/, "").toLowerCase();
+            const typed = byId("delete-confirm-username").value;
+            byId("confirm-delete").disabled = !state.account?.username || normalize(typed) !== normalize(state.account.username);
+        };
+        byId("delete-confirm-username").addEventListener("input", syncDeleteButton);
+        byId("delete-confirm-username").addEventListener("change", syncDeleteButton);
         byId("delete-dialog").addEventListener("close", () => {
             byId("delete-account-form").reset();
             byId("confirm-delete").disabled = true;
@@ -700,38 +785,482 @@
                 });
                 event.currentTarget.reset();
                 showNotice(byId("reset-notice"), `${result.message}. You can now sign in.`, "success");
-                window.history.replaceState({}, "", "/");
+                window.history.replaceState({}, "", "/sign_in");
             } catch (error) {
                 handleError(byId("reset-notice"), error, form);
             }
         });
     }
 
-    async function verifyEmail(token) {
-        showView("auth");
-        setAuthMode("login");
-        try {
-            const result = await request(`/auth/verify-email?token=${encodeURIComponent(token)}`);
-            showNotice(byId("auth-notice"), result.message, "success");
-        } catch (error) {
-            handleError(byId("auth-notice"), error);
-        } finally {
-            window.history.replaceState({}, "", "/");
+    function emptyState(text) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        empty.textContent = text;
+        return empty;
+    }
+
+    const badgeText = count => (count > 9 ? "9+" : String(count));
+
+    async function showPlayers(username = null) {
+        const wasHidden = byId("players-view").hidden;
+        showView("players");
+        hideNotice(byId("players-notice"));
+        if (wasHidden) void loadFriends();
+        if (username) {
+            await openPlayer(username);
+            return;
+        }
+        byId("player-card").hidden = true;
+        if (wasHidden) byId("players-query").focus();
+    }
+
+    function paintAvatar(element, user) {
+        element.className = element.className.replace(/\bhas-image\b/, "").trim();
+        element.style.backgroundImage = "";
+        delete element.dataset.bg;
+        delete element.dataset.ink;
+        if (user.avatarUrl) {
+            element.textContent = "";
+            element.style.backgroundImage = `url("${user.avatarUrl.replace(/["\\]/g, "")}")`;
+            element.classList.add("has-image");
+        } else {
+            applyDefaultAvatar(element, { username: user.username });
         }
     }
 
-    function bindHome() {
-        const toHome = event => {
-            event.preventDefault();
-            showHome();
-            window.scrollTo({ top: 0 });
+    async function openPlayer(username) {
+        const card = byId("player-card");
+        try {
+            const { user } = await request(`/users/${encodeURIComponent(username)}`, {}, { authenticated: true });
+            hideNotice(byId("players-notice"));
+            paintAvatar(byId("player-avatar"), user);
+            byId("player-username").textContent = `@${user.username}`;
+            const fields = {
+                "player-name": user.name,
+                "player-bio": user.bio,
+                "player-since": user.memberSince
+                    ? `Seated at the table since ${new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(user.memberSince))}`
+                    : ""
+            };
+            for (const [id, text] of Object.entries(fields)) {
+                byId(id).textContent = text || "";
+                byId(id).hidden = !text;
+            }
+            byId("player-private").hidden = !(user.private && !("name" in user));
+            renderPlayerActions(user);
+            card.hidden = false;
+            document.querySelectorAll(".player-result").forEach(item => {
+                item.classList.toggle("is-active", item.dataset.username === user.username);
+            });
+        } catch (error) {
+            card.hidden = true;
+            showNotice(byId("players-notice"), error.message, "error");
+        }
+    }
+
+    // One row for a person in any list: avatar, @name, and an optional second line
+    function personRow(user, { detail = "", className = "", detailClass = "" } = {}) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = `player-result ${className}`.trim();
+        row.dataset.username = user.username;
+        const avatar = document.createElement("span");
+        avatar.className = "avatar";
+        paintAvatar(avatar, user);
+        const label = document.createElement("span");
+        label.className = "player-result-name";
+        label.textContent = `@${user.username}`;
+        if (detail) {
+            const small = document.createElement("small");
+            small.className = detailClass;
+            small.textContent = detail;
+            label.append(small);
+        }
+        row.append(avatar, label);
+        return row;
+    }
+
+    function playerButton(user) {
+        const row = personRow(user, { detail: user.name });
+        row.addEventListener("click", () => go(userPath("/players", user.username)));
+        return row;
+    }
+
+    async function loadFriends() {
+        const panel = byId("friends-panel");
+        if (!state.accessToken) {
+            panel.hidden = true;
+            return;
+        }
+        try {
+            const data = await request("/friends", {}, { authenticated: true });
+            const fill = (id, users, emptyText) => {
+                const box = byId(id);
+                box.replaceChildren();
+                if (!users.length && emptyText) box.append(emptyState(emptyText));
+                for (const user of users) box.append(playerButton(user));
+            };
+            fill("friends-list", data.friends, "No friends yet. Search for a player and send an invite!");
+            fill("friends-incoming", data.incoming);
+            fill("friends-outgoing", data.outgoing);
+            byId("friends-incoming-group").hidden = !data.incoming.length;
+            byId("friends-outgoing-group").hidden = !data.outgoing.length;
+            panel.hidden = false;
+        } catch {
+            panel.hidden = true;
+        }
+    }
+
+    function renderPlayerActions(user) {
+        const box = byId("player-actions");
+        box.replaceChildren();
+        const add = (label, method, kind = "secondary") => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `button button-${kind}`;
+            button.textContent = label;
+            button.addEventListener("click", async () => {
+                button.disabled = true;
+                try {
+                    const path = `/friends/${encodeURIComponent(user.username)}`;
+                    await request(path, { method }, { authenticated: true });
+                    await Promise.all([openPlayer(user.username), loadFriends()]);
+                } catch (error) {
+                    button.disabled = false;
+                    showNotice(byId("players-notice"), error.message, "error");
+                }
+            });
+            box.append(button);
         };
-        document.querySelector(".brand").addEventListener("click", toHome);
-        byId("nav-home").addEventListener("click", toHome);
-        byId("nav-account").addEventListener("click", () => goToAccount("login"));
-        byId("home-primary").addEventListener("click", () => goToAccount("register"));
-        byId("home-secondary").addEventListener("click", () => goToAccount("login"));
-        byId("home-cta-button").addEventListener("click", () => goToAccount("register"));
+        if (user.relationship === "self") return;
+        if (!state.accessToken) {
+            const hint = document.createElement("p");
+            hint.className = "player-since";
+            hint.textContent = "Sign in to send a friend request.";
+            box.append(hint);
+        } else if (state.account && !state.account.emailVerified && ["none", "incoming"].includes(user.relationship)) {
+            const hint = document.createElement("p");
+            hint.className = "player-since";
+            hint.textContent = "Verify your email to send or accept friend requests.";
+            box.append(hint);
+            if (user.relationship === "incoming") add("Decline", "DELETE");
+        } else if (user.relationship === "none") {
+            add("Send friend request", "POST", "primary");
+        } else if (user.relationship === "outgoing") {
+            add("Cancel request", "DELETE");
+        } else if (user.relationship === "incoming") {
+            add("Accept request", "PUT", "primary");
+            add("Decline", "DELETE");
+        } else if (user.relationship === "friends") {
+            const message = document.createElement("button");
+            message.type = "button";
+            message.className = "button button-primary";
+            message.textContent = "Send a message";
+            message.addEventListener("click", () => go(userPath("/messages", user.username)));
+            box.append(message);
+            add("Unfriend", "DELETE");
+        }
+    }
+
+    async function searchPlayers(query) {
+        const results = byId("players-results");
+        byId("player-card").hidden = true;
+        hideNotice(byId("players-notice"));
+        try {
+            const { users } = await request(`/users?q=${encodeURIComponent(query)}`, {}, { authenticated: true });
+            results.replaceChildren();
+            if (!users.length) {
+                results.append(emptyState(`No one at the tables goes by “${query}”. Try another spelling?`));
+                return;
+            }
+            for (const user of users) results.append(playerButton(user));
+            if (users.length === 1) void go(userPath("/players", users[0].username));
+        } catch (error) {
+            results.replaceChildren();
+            showNotice(byId("players-notice"), error.message, "error");
+        }
+    }
+
+    function bindPlayers() {
+        byId("nav-players").addEventListener("click", () => go("/players"));
+        bindSubmit(byId("players-form"), "Searching…", async (event, form) => {
+            await searchPlayers(form.elements.q.value.trim());
+        });
+    }
+
+    const chat = { friend: null, timer: null, badgeTimer: null, lastId: null };
+    const live = { socket: null, failures: 0 };
+    const liveConnected = () => Boolean(live.socket?.connected);
+
+    // Push events only say "something changed"; the data is re-fetched through the authorized REST routes
+    function connectLive() {
+        if (typeof window.io !== "function" || !state.accessToken) return;
+        if (live.socket) {
+            if (!live.socket.connected) live.socket.connect();
+            return;
+        }
+        const socket = window.io({ auth: done => done({ token: state.accessToken }) });
+        live.socket = socket;
+
+        const reauthorize = async () => {
+            if (++live.failures > 3) return;
+            if (await refreshAccessToken()) socket.connect();
+        };
+        socket.on("connect", () => {
+            live.failures = 0;
+            void loadConversations();
+            if (chat.friend && !byId("messages-view").hidden) void refreshThread();
+        });
+        socket.on("connect_error", error => {
+            if (error.message === "unauthorized") void reauthorize();
+        });
+        socket.on("disconnect", reason => {
+            if (reason === "io server disconnect") void reauthorize();
+        });
+        socket.on("message", async payload => {
+            // Reading the open thread marks it read, so refresh it before the unread counts
+            if (chat.friend?.username === payload?.username && !byId("messages-view").hidden) await refreshThread();
+            void loadConversations();
+        });
+        socket.on("friends", () => {
+            void loadConversations();
+            if (!byId("players-view").hidden) void loadFriends();
+            if (!byId("players-view").hidden && !byId("player-card").hidden) {
+                void openPlayer(byId("player-username").textContent.replace(/^@/, ""));
+            }
+        });
+    }
+
+    // Messages that arrived while the tab was hidden count as read once it's seen
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && chat.friend && !byId("messages-view").hidden) {
+            void refreshThread().then(loadConversations);
+        }
+    });
+
+    function disconnectLive() {
+        live.socket?.disconnect();
+        live.socket = null;
+        live.failures = 0;
+    }
+
+    function stopThreadPolling() {
+        clearInterval(chat.timer);
+        chat.timer = null;
+    }
+
+    function stopBadgePolling() {
+        clearInterval(chat.badgeTimer);
+        chat.badgeTimer = null;
+    }
+
+    function startBadgePolling() {
+        if (chat.badgeTimer) return;
+        chat.badgeTimer = setInterval(() => {
+            if (state.accessToken && !document.hidden && !liveConnected()) void loadConversations();
+        }, 20000);
+    }
+
+    function updateBadge(conversations) {
+        const total = conversations.reduce((sum, item) => sum + item.unread, 0);
+        const badge = byId("nav-badge");
+        badge.textContent = badgeText(total);
+        badge.hidden = total === 0;
+    }
+
+    function formatTime(value) {
+        const date = new Date(value);
+        const sameDay = date.toDateString() === new Date().toDateString();
+        return new Intl.DateTimeFormat(undefined, sameDay ? { timeStyle: "short" } : { dateStyle: "medium", timeStyle: "short" }).format(date);
+    }
+
+    function closeThread() {
+        stopThreadPolling();
+        chat.friend = null;
+        byId("thread").hidden = true;
+        byId("thread-empty").hidden = false;
+    }
+
+    function conversationRow(item) {
+        const row = personRow(item, {
+            detail: item.lastMessage ? `${item.lastMessage.mine ? "You: " : ""}${item.lastMessage.body}` : "Say hello!",
+            className: "conversation",
+            detailClass: "conversation-preview"
+        });
+        row.classList.toggle("is-active", chat.friend?.username === item.username);
+        if (item.unread) {
+            const dot = document.createElement("span");
+            dot.className = "nav-badge";
+            dot.textContent = badgeText(item.unread);
+            row.append(dot);
+        }
+        row.addEventListener("click", () => go(userPath("/messages", item.username)));
+        return row;
+    }
+
+    // Returns the conversation list, or null if it couldn't be loaded
+    async function loadConversations() {
+        if (!state.accessToken) return null;
+        try {
+            const { conversations } = await request("/messages", {}, { authenticated: true });
+            updateBadge(conversations);
+            if (byId("messages-view").hidden) return conversations;
+            if (chat.friend && !conversations.some(item => item.username === chat.friend.username)) {
+                closeThread();
+                window.history.replaceState({}, "", "/messages");
+                showNotice(byId("messages-notice"), "That chat has closed because you’re no longer friends.", "error");
+            }
+            const list = byId("conversation-list");
+            list.replaceChildren();
+            if (conversations.length) {
+                list.append(...conversations.map(conversationRow));
+            } else {
+                list.append(emptyState("No friends at the table yet. Add a few from the Players page!"));
+            }
+            return conversations;
+        } catch {
+            // Background refreshes fail quietly
+            return null;
+        }
+    }
+
+    function renderMessages(messages) {
+        const body = byId("thread-body");
+        const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
+        body.replaceChildren();
+        if (!messages.length) {
+            const empty = document.createElement("p");
+            empty.className = "empty-state";
+            empty.textContent = "Nothing here yet. Break the ice!";
+            body.append(empty);
+        }
+        for (const message of messages) {
+            const bubble = document.createElement("div");
+            bubble.className = `bubble ${message.mine ? "bubble-mine" : "bubble-theirs"}`;
+            const text = document.createElement("p");
+            text.textContent = message.body;
+            const time = document.createElement("time");
+            time.dateTime = message.createdAt;
+            time.textContent = formatTime(message.createdAt);
+            bubble.append(text, time);
+            body.append(bubble);
+        }
+        const latestMine = messages.findLast(message => message.mine);
+        if (latestMine) {
+            const status = document.createElement("span");
+            status.className = `delivery ${latestMine.read ? "delivery-read" : "delivery-sent"}`;
+            status.textContent = "♥";
+            status.title = latestMine.read ? "Read" : "Sent";
+            status.setAttribute("role", "img");
+            status.setAttribute("aria-label", status.title);
+            const lastBubble = body.querySelectorAll(".bubble-mine");
+            // Sits under the newest sent message, even if they've replied since
+            lastBubble[lastBubble.length - 1].after(status);
+        }
+        const newest = messages.at(-1)?.id || null;
+        if (nearBottom || newest !== chat.lastId) body.scrollTop = body.scrollHeight;
+        chat.lastId = newest;
+    }
+
+    async function refreshThread({ background = false } = {}) {
+        if (!chat.friend || (background && document.hidden)) return;
+        const username = chat.friend.username;
+        try {
+            const peek = document.hidden ? "?peek=1" : "";
+            const { messages } = await request(`/messages/${encodeURIComponent(username)}${peek}`, {}, { authenticated: true });
+            if (chat.friend?.username === username) renderMessages(messages);
+        } catch (error) {
+            showNotice(byId("messages-notice"), error.message, "error");
+            stopThreadPolling();
+        }
+    }
+
+    async function openThread(friend) {
+        chat.friend = friend;
+        chat.lastId = null;
+        hideNotice(byId("messages-notice"));
+        byId("thread").hidden = false;
+        byId("thread-empty").hidden = true;
+        byId("thread-name").textContent = `@${friend.username}`;
+        paintAvatar(byId("thread-avatar"), friend);
+        document.querySelectorAll(".conversation").forEach(row => {
+            row.classList.toggle("is-active", row.dataset.username === friend.username);
+        });
+        stopThreadPolling();
+        await refreshThread();
+        void loadConversations();
+        chat.timer = setInterval(() => {
+            if (!liveConnected()) void refreshThread({ background: true });
+        }, 5000);
+        const canSend = Boolean(state.account?.emailVerified);
+        byId("thread-input").disabled = !canSend;
+        byId("thread-form").querySelector("button").disabled = !canSend;
+        byId("thread-input").placeholder = canSend ? "Deal a message…" : "Verify your email to send messages";
+        if (canSend) byId("thread-input").focus();
+    }
+
+    async function showMessages(username = null) {
+        if (!requireSignIn("Sign in to chat with your friends.")) return;
+        showView("messages");
+        hideNotice(byId("messages-notice"));
+        const conversations = await loadConversations();
+        const friend = username && conversations?.find(item => item.username === username);
+        if (friend) {
+            await openThread(friend);
+            return;
+        }
+        closeThread();
+        if (username && conversations) {
+            window.history.replaceState({}, "", "/messages");
+            showNotice(byId("messages-notice"), "You can only chat with your friends.", "error");
+        }
+    }
+
+    function bindMessages() {
+        byId("nav-messages").addEventListener("click", () => go("/messages"));
+        const input = byId("thread-input");
+        const form = byId("thread-form");
+        input.addEventListener("keydown", event => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            const body = input.value.trim();
+            if (!body || !chat.friend) return;
+            const button = form.querySelector("button");
+            button.disabled = true;
+            try {
+                await request(`/messages/${encodeURIComponent(chat.friend.username)}`, {
+                    method: "POST",
+                    body: JSON.stringify({ body })
+                }, { authenticated: true });
+                input.value = "";
+                hideNotice(byId("messages-notice"));
+                await refreshThread();
+                void loadConversations();
+            } catch (error) {
+                showNotice(byId("messages-notice"), error.message, "error");
+            } finally {
+                button.disabled = false;
+                input.focus();
+            }
+        });
+    }
+
+    function bindHome() {
+        const link = event => {
+            event.preventDefault();
+            void go("/");
+        };
+        document.querySelector(".brand").addEventListener("click", link);
+        byId("nav-home").addEventListener("click", link);
+        byId("nav-account").addEventListener("click", () => go("/sign_in"));
+        byId("home-primary").addEventListener("click", () => go("/register"));
+        byId("home-secondary").addEventListener("click", () => go("/sign_in"));
+        byId("home-cta-button").addEventListener("click", () => go("/register"));
     }
 
     async function initialize() {
@@ -740,29 +1269,25 @@
         bindPasswordUX();
         bindAvatarPreview();
         bindHome();
+        bindPlayers();
+        bindMessages();
 
-        const query = new URLSearchParams(window.location.search);
-        const resetToken = query.get("resetPassword");
-        const verifyToken = query.get("verifyEmail");
+        const resetToken = new URLSearchParams(window.location.search).get("resetPassword");
         if (resetToken) {
             showView("reset");
             bindResetForm(resetToken);
             return;
         }
-        if (verifyToken) {
-            await verifyEmail(verifyToken);
-            return;
-        }
 
         if (await refreshAccessToken()) {
             try {
-                await enterDashboard();
+                await startSession();
             } catch {
-                signOutLocally();
+                state.account = null;
             }
-        } else {
-            showHome();
         }
+        window.addEventListener("popstate", renderRoute);
+        await renderRoute();
     }
 
     window.addEventListener("DOMContentLoaded", initialize);

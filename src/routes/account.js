@@ -1,6 +1,6 @@
 const { Router } = require("express");
-const { rateLimit } = require("express-rate-limit");
-const attachUser = require("../middleware/attachUser");
+const createLimiter = require("../middleware/createLimiter");
+const requireUser = require("../middleware/requireUser");
 const {
     handlePasswordVerification,
     handlePasswordChange,
@@ -8,7 +8,7 @@ const {
     handleEmailChange,
     handleAccountDeletion
 } = require("../auth/handlers");
-const { ServerError, HTTPcodes, requireFields } = require("../util");
+const { ServerError, HTTPcodes, requireFields, sendRouteError } = require("../util");
 const { getUser, updateUser } = require("../database/users");
 const {
     getActiveSessions,
@@ -31,23 +31,10 @@ const refreshCookieOptions = {
 };
 
 function createSensitiveLimiter() {
-    return rateLimit({
+    return createLimiter({
         windowMs: 15 * 60 * 1000,
         limit: 5,
-        standardHeaders: true,
-        legacyHeaders: false,
-        message: { error: "TooManyRequests", message: "Too many attempts. Please try again later." }
-    });
-}
-
-function sendRouteError(res, error) {
-    const status = Number.isInteger(error?.code) ? error.code : HTTPcodes.internal;
-    if (status >= 500) console.error(error);
-    return res.status(status).json({
-        error: error?.type || "InternalServerError",
-        message: status >= 500 ? "An unexpected error occurred" : error.message,
-        ...(error?.missing ? { missing: error.missing } : {}),
-        ...(error?.failed ? { failed: error.failed } : {})
+        message: "Too many attempts. Please try again later."
     });
 }
 
@@ -63,15 +50,8 @@ function clearRefreshCookie(res) {
     res.clearCookie("refreshToken", refreshCookieOptions);
 }
 
-accountRoutes.use(attachUser, (req, res, next) => {
-    if (!req.user?.id) {
-        return res.status(HTTPcodes.unauthorized).json({
-            error: "AuthenticationRequired",
-            message: "A valid access token is required"
-        });
-    }
-    return next();
-});
+accountRoutes.use(...requireUser);
+
 
 accountRoutes.post("/export", createSensitiveLimiter(), async (req, res) => {
     try {

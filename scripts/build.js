@@ -2,16 +2,6 @@ require("dotenv").config({ quiet: true });
 const { pool } = require("../src/database");
 const { tableFactory } = require("../src/database/factories");
 
-async function createExtenstions() {
-    try {
-        console.log("Ensuring extensions...");
-
-        console.log("No extensions to ensure");
-    } catch (error) {
-        console.error("Error while preping for creation\n", error)
-    };
-};
-
 async function createFunctions() {
     console.log("Ensuring functions...");
     await pool.query(`
@@ -81,29 +71,60 @@ const createSessionsTable = tableFactory({
     ]
 });
 
-async function migrateUsersTable() {
-    await pool.query(`
-        ALTER TABLE users
-            ADD COLUMN IF NOT EXISTS bio TEXT,
-            ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(2048),
-            ADD COLUMN IF NOT EXISTS settings JSONB NOT NULL DEFAULT '{}'::jsonb;
-    `);
-}
+const createFriendshipsTable = tableFactory({
+    tableName: "friendships",
+    columns: [
+        { name: "id", type: "CHAR(26)", primaryKey: true },
+        { name: "requester_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "addressee_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "status", type: "VARCHAR(10)", notNull: true, default: "'pending'", check: "status IN ('pending', 'accepted')" },
+        { name: "created_at", type: "TIMESTAMP", default: "CURRENT_TIMESTAMP" },
+        { name: "updated_at", type: "TIMESTAMP", default: "CURRENT_TIMESTAMP" }
+    ],
+    constraints: ["requester_id <> addressee_id"],
+    indexes: [
+        { name: "idx_friendships_pair", unique: true, columns: ["LEAST(requester_id, addressee_id)", "GREATEST(requester_id, addressee_id)"] },
+        { name: "idx_friendships_addressee", columns: ["addressee_id"] },
+        { name: "idx_friendships_requester", columns: ["requester_id"] }
+    ]
+});
+
+const createMessagesTable = tableFactory({
+    tableName: "messages",
+    columns: [
+        { name: "id", type: "CHAR(26)", primaryKey: true },
+        { name: "sender_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "recipient_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "body", type: "VARCHAR(256)", notNull: true, check: "length(btrim(body)) > 0" },
+        { name: "created_at", type: "TIMESTAMP", default: "CURRENT_TIMESTAMP" },
+        { name: "read_at", type: "TIMESTAMP" }
+    ],
+    constraints: ["sender_id <> recipient_id"],
+    indexes: [
+        { name: "idx_messages_pair", columns: ["LEAST(sender_id, recipient_id)", "GREATEST(sender_id, recipient_id)", "id DESC"] },
+        { name: "idx_messages_unread", columns: ["recipient_id"], where: "read_at IS NULL" },
+        { name: "idx_messages_read_at", columns: ["read_at"], where: "read_at IS NOT NULL" }
+    ]
+});
 
 async function createDB() {
     try {
-        await createExtenstions();
         await createFunctions();
         console.log("\nCreating table 'users'...");
         const usersResult = await createUsersTable();
         console.log(usersResult.message + "\n");
-        await migrateUsersTable();
         console.log("Creating table 'Tokens'...");
         const tokensResult = await createTokensTable();
         console.log(tokensResult.message + "\n");
         console.log("Creating table 'sessions'...");
         const sessionsResult = await createSessionsTable();
         console.log(sessionsResult.message + "\n");
+        console.log("Creating table 'friendships'...");
+        const friendshipsResult = await createFriendshipsTable();
+        console.log(friendshipsResult.message + "\n");
+        console.log("Creating table 'messages'...");
+        const messagesResult = await createMessagesTable();
+        console.log(messagesResult.message + "\n");
     } catch (error) {
         console.error("Error creating database\n", error);
         throw error;

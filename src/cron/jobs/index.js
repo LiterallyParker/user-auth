@@ -1,5 +1,6 @@
 module.exports = [
     require("./cleanExpiredTokens"),
     require("./cleanUsedTokens"),
-    require("./cleanInactiveSessions")
+    require("./cleanInactiveSessions"),
+    require("./cleanReadMessages")
 ]

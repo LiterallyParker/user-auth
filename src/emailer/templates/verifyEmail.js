@@ -1,5 +1,5 @@
 module.exports = function template({ token, username }) {
-    const verifyURL = `${process.env.CLIENT_URL}/?verifyEmail=${encodeURIComponent(token)}`;
+    const verifyURL = `${process.env.CLIENT_URL}/verify-email.html?token=${encodeURIComponent(token)}`;
 
     return `
         <!DOCTYPE html>

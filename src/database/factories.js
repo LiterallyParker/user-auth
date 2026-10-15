@@ -1,10 +1,11 @@
 const pool = require("./pool");
-const { ANSIcolors, keysToSnake, keysToCamel, ServerError, HTTPcodes } = require("../util");
+const { keysToSnake, keysToCamel, ServerError, HTTPcodes } = require("../util");
 const { ulid } = require("ulid");
 
 const tableFactory = ({
     tableName,
     columns = [],
+    constraints = [],
     indexes = [],
     triggers = []
 }) => async () => {
@@ -30,13 +31,13 @@ const tableFactory = ({
             if (col.cascade) def += " ON DELETE CASCADE"
             if (col.check) def += ` CHECK (${col.check})`;
             return def;
-        }).join(', ');
+        }).concat(constraints.map(rule => `CHECK (${rule})`)).join(', ');
         // Create table
         const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefs});`
         await pool.query(query);
         // Create indexes if provided
         for (const index of indexes) {
-            const iQuery = `CREATE INDEX IF NOT EXISTS ${index.name} ON ${tableName}(${index.columns.join(", ")});`
+            const iQuery = `CREATE ${index.unique ? "UNIQUE " : ""}INDEX IF NOT EXISTS ${index.name} ON ${tableName}(${index.columns.join(", ")})${index.where ? ` WHERE ${index.where}` : ""};`
             await pool.query(iQuery);
         };
         // Create triggers if provided
@@ -58,10 +59,10 @@ const tableFactory = ({
     } catch (error) {
         console.error(error);
         throw new ServerError(
-            type = "DatabaseError",
-            message = "Failed to create table in database",
-            code = HTTPcodes.internal,
-            options = {
+            "DatabaseError",
+            "Failed to create table in database",
+            HTTPcodes.internal,
+            {
                 table: tableName,
                 operation: "CREATE",
                 psqlCode: error.code
