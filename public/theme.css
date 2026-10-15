@@ -385,7 +385,6 @@ input:-webkit-autofill { -webkit-text-fill-color: var(--ink); box-shadow: 0 0 0 
 .players { width: min(920px, 100%); margin: 0 auto; padding: 8px 0 40px; display: grid; gap: 18px; }
 .players-search { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
 .players-search .field { flex: 1 1 240px; }
-.players-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
 .players-results { display: grid; gap: 8px; }
 .player-result { display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left; cursor: pointer; color: inherit; font: inherit; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.14); border-radius: 12px; transition: border-color .15s, background .15s; }
 .player-result:hover, .player-result:focus-visible, .player-result.is-active { border-color: #ff6b78; background: rgba(217,43,58,.14); }
@@ -399,7 +398,6 @@ input:-webkit-autofill { -webkit-text-fill-color: var(--ink); box-shadow: 0 0 0 
 .player-name { font-size: 1.1rem; }
 .player-bio { white-space: pre-wrap; opacity: .9; }
 .player-since, .player-private { opacity: .7; font-size: .9rem; }
-@media (max-width: 720px) { .players-layout { grid-template-columns: 1fr; } }
 .player-result .avatar, .player-card .avatar { display: grid; place-items: center; border-radius: 16px; background-size: cover; background-position: center; overflow: hidden; }
 .player-result .avatar[data-bg] { font-size: 20px; }
 .player-card .avatar[data-bg] { font-size: 46px; }
@@ -435,3 +433,16 @@ input:-webkit-autofill { -webkit-text-fill-color: var(--ink); box-shadow: 0 0 0 
 .thread-form { display: flex; gap: 10px; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); align-items: end; }
 .thread-form textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; font: inherit; color: inherit; background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.2); border-radius: 10px; padding: 10px 12px; field-sizing: content; }
 @media (max-width: 720px) { .messages-layout { grid-template-columns: 1fr; } }
+
+/* Clubs */
+#clubs-view > div:not(.players-head):not(.notice) { display: grid; gap: 18px; }
+#club-detail[hidden], #clubs-list-view[hidden] { display: none; }
+.club-row .club-role { margin-left: auto; flex: none; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.club-back { justify-self: start; font-size: .85rem; opacity: .8; }
+#club-member { justify-items: center; text-align: center; }
+#club-member[hidden] { display: none; }
+.profile { width: min(640px, 100%); margin: 0 auto; padding: 8px 0 40px; display: grid; gap: 18px; }
+.profile[hidden] { display: none; }
+.profile-card h1 { margin: 0; font-size: 1.8rem; }
+.profile-card .player-avatar { width: 128px; height: 128px; font-size: 3.6rem; }
+.profile-card .avatar[data-bg] { font-size: 60px; }

@@ -107,6 +107,35 @@ const createMessagesTable = tableFactory({
     ]
 });
 
+const createClubsTable = tableFactory({
+    tableName: "clubs",
+    columns: [
+        { name: "id", type: "CHAR(26)", primaryKey: true },
+        { name: "owner_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "name", type: "VARCHAR(40)", notNull: true, check: "length(btrim(name)) > 0" },
+        { name: "is_public", type: "BOOLEAN", notNull: true, default: "TRUE" },
+        { name: "created_at", type: "TIMESTAMP", default: "CURRENT_TIMESTAMP" }
+    ],
+    indexes: [
+        { name: "idx_clubs_name", unique: true, columns: ["LOWER(name)"] },
+        { name: "idx_clubs_owner", columns: ["owner_id"] }
+    ]
+});
+
+const createClubMembersTable = tableFactory({
+    tableName: "club_members",
+    columns: [
+        { name: "club_id", type: "CHAR(26)", notNull: true, references: "clubs(id)", cascade: true },
+        { name: "user_id", type: "CHAR(26)", notNull: true, references: "users(id)", cascade: true },
+        { name: "status", type: "VARCHAR(10)", notNull: true, default: "'pending'", check: "status IN ('pending', 'requested', 'accepted')" },
+        { name: "created_at", type: "TIMESTAMP", default: "CURRENT_TIMESTAMP" }
+    ],
+    indexes: [
+        { name: "idx_club_members_pair", unique: true, columns: ["club_id", "user_id"] },
+        { name: "idx_club_members_user", columns: ["user_id"] }
+    ]
+});
+
 async function createDB() {
     try {
         await createFunctions();
@@ -125,6 +154,12 @@ async function createDB() {
         console.log("Creating table 'messages'...");
         const messagesResult = await createMessagesTable();
         console.log(messagesResult.message + "\n");
+        console.log("Creating table 'clubs'...");
+        const clubsResult = await createClubsTable();
+        console.log(clubsResult.message + "\n");
+        console.log("Creating table 'club_members'...");
+        const clubMembersResult = await createClubMembersTable();
+        console.log(clubMembersResult.message + "\n");
     } catch (error) {
         console.error("Error creating database\n", error);
         throw error;

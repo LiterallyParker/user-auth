@@ -146,8 +146,11 @@
         [/^\/sign_in$/, () => showAuth("login")],
         [/^\/register$/, () => showAuth("register")],
         [/^\/my_account(?:\/([a-z]+))?$/, showDashboard],
-        [/^\/players(?:\/([^/]+))?$/, showPlayers],
-        [/^\/messages(?:\/([^/]+))?$/, showMessages]
+        [/^\/players$/, showPlayers],
+        [/^\/players\/([^/]+)$/, name => go(userPath("/profile", name), { replace: true })],
+        [/^\/profile(?:\/([^/]+))?$/, showProfile],
+        [/^\/messages(?:\/([^/]+))?$/, showMessages],
+        [/^\/clubs(?:\/([^/]+)(?:\/members\/([^/]+))?)?$/, showClubs]
     ];
 
     async function renderRoute() {
@@ -172,11 +175,14 @@
     function showView(view) {
         byId("home-view").hidden = view !== "home";
         byId("players-view").hidden = view !== "players";
+        byId("profile-view").hidden = view !== "profile";
         byId("messages-view").hidden = view !== "messages";
+        byId("clubs-view").hidden = view !== "clubs";
+        byId("nav-clubs").classList.toggle("is-active", view === "clubs");
         byId("nav-messages").classList.toggle("is-active", view === "messages");
         if (view !== "messages") stopThreadPolling();
         byId("nav-home").classList.toggle("is-active", view === "home");
-        byId("nav-players").classList.toggle("is-active", view === "players");
+        byId("nav-players").classList.toggle("is-active", view === "players" || view === "profile");
         byId("nav-account").classList.toggle("is-active", view === "auth" || view === "dashboard");
         byId("nav-account").textContent = state.accessToken ? "My account" : "Sign in";
         byId("auth-view").hidden = view !== "auth";
@@ -383,6 +389,7 @@
             await loadAccount();
             await loadSessions();
             void loadConversations();
+            void loadClubs();
             startBadgePolling();
             connectLive();
         } catch (error) {
@@ -404,6 +411,7 @@
         stopBadgePolling();
         disconnectLive();
         byId("nav-badge").hidden = true;
+        byId("clubs-badge").hidden = true;
         void go("/sign_in", { replace: true });
         if (message) showNotice(byId("auth-notice"), message, "success");
     }
@@ -801,17 +809,14 @@
 
     const badgeText = count => (count > 9 ? "9+" : String(count));
 
-    async function showPlayers(username = null) {
+    function showPlayers() {
         const wasHidden = byId("players-view").hidden;
         showView("players");
         hideNotice(byId("players-notice"));
-        if (wasHidden) void loadFriends();
-        if (username) {
-            await openPlayer(username);
-            return;
+        if (wasHidden) {
+            void loadFriends();
+            byId("players-query").focus();
         }
-        byId("player-card").hidden = true;
-        if (wasHidden) byId("players-query").focus();
     }
 
     function paintAvatar(element, user) {
@@ -828,34 +833,58 @@
         }
     }
 
-    async function openPlayer(username) {
-        const card = byId("player-card");
+    // Fills the avatar, @name, real name, bio and join date of a profile card; ids share a prefix
+    function paintProfile(prefix, user) {
+        paintAvatar(byId(`${prefix}-avatar`), user);
+        byId(`${prefix}-username`).textContent = `@${user.username}`;
+        const fields = {
+            name: user.name,
+            bio: user.bio,
+            since: user.memberSince
+                ? `Seated at the table since ${new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(user.memberSince))}`
+                : ""
+        };
+        for (const [key, text] of Object.entries(fields)) {
+            const element = byId(`${prefix}-${key}`);
+            element.textContent = text || "";
+            element.hidden = !text;
+        }
+    }
+
+    let profileName = null;
+
+    async function loadProfile(username) {
+        const card = byId("profile-card");
         try {
             const { user } = await request(`/users/${encodeURIComponent(username)}`, {}, { authenticated: true });
-            hideNotice(byId("players-notice"));
-            paintAvatar(byId("player-avatar"), user);
-            byId("player-username").textContent = `@${user.username}`;
-            const fields = {
-                "player-name": user.name,
-                "player-bio": user.bio,
-                "player-since": user.memberSince
-                    ? `Seated at the table since ${new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(new Date(user.memberSince))}`
-                    : ""
-            };
-            for (const [id, text] of Object.entries(fields)) {
-                byId(id).textContent = text || "";
-                byId(id).hidden = !text;
-            }
-            byId("player-private").hidden = !(user.private && !("name" in user));
-            renderPlayerActions(user);
+            hideNotice(byId("profile-notice"));
+            profileName = user.username;
+            paintProfile("profile", user);
+            byId("profile-private").hidden = !(user.private && !("name" in user));
+            renderProfileActions(user);
             card.hidden = false;
-            document.querySelectorAll(".player-result").forEach(item => {
-                item.classList.toggle("is-active", item.dataset.username === user.username);
-            });
         } catch (error) {
             card.hidden = true;
-            showNotice(byId("players-notice"), error.message, "error");
+            showNotice(byId("profile-notice"), error.message, "error");
         }
+    }
+
+    async function showProfile(username = null) {
+        if (!username) {
+            if (state.account) await go(userPath("/profile", state.account.username), { replace: true });
+            else await go("/players", { replace: true });
+            return;
+        }
+        showView("profile");
+        byId("profile-card").hidden = true;
+        hideNotice(byId("profile-notice"));
+        profileName = null;
+        byId("profile-back").onclick = event => {
+            event.preventDefault();
+            if (window.history.length > 1 && document.referrer.startsWith(window.location.origin)) window.history.back();
+            else void go("/players");
+        };
+        await loadProfile(username);
     }
 
     // One row for a person in any list: avatar, @name, and an optional second line
@@ -882,7 +911,7 @@
 
     function playerButton(user) {
         const row = personRow(user, { detail: user.name });
-        row.addEventListener("click", () => go(userPath("/players", user.username)));
+        row.addEventListener("click", () => go(userPath("/profile", user.username)));
         return row;
     }
 
@@ -911,8 +940,8 @@
         }
     }
 
-    function renderPlayerActions(user) {
-        const box = byId("player-actions");
+    function renderProfileActions(user) {
+        const box = byId("profile-actions");
         box.replaceChildren();
         const add = (label, method, kind = "secondary") => {
             const button = document.createElement("button");
@@ -924,15 +953,23 @@
                 try {
                     const path = `/friends/${encodeURIComponent(user.username)}`;
                     await request(path, { method }, { authenticated: true });
-                    await Promise.all([openPlayer(user.username), loadFriends()]);
+                    await Promise.all([loadProfile(user.username), loadFriends()]);
                 } catch (error) {
                     button.disabled = false;
-                    showNotice(byId("players-notice"), error.message, "error");
+                    showNotice(byId("profile-notice"), error.message, "error");
                 }
             });
             box.append(button);
         };
-        if (user.relationship === "self") return;
+        if (user.relationship === "self") {
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.className = "button button-primary";
+            edit.textContent = "Edit my profile";
+            edit.addEventListener("click", () => go("/my_account/profile"));
+            box.append(edit);
+            return;
+        }
         if (!state.accessToken) {
             const hint = document.createElement("p");
             hint.className = "player-since";
@@ -964,7 +1001,6 @@
 
     async function searchPlayers(query) {
         const results = byId("players-results");
-        byId("player-card").hidden = true;
         hideNotice(byId("players-notice"));
         try {
             const { users } = await request(`/users?q=${encodeURIComponent(query)}`, {}, { authenticated: true });
@@ -974,7 +1010,7 @@
                 return;
             }
             for (const user of users) results.append(playerButton(user));
-            if (users.length === 1) void go(userPath("/players", users[0].username));
+            if (users.length === 1) void go(userPath("/profile", users[0].username));
         } catch (error) {
             results.replaceChildren();
             showNotice(byId("players-notice"), error.message, "error");
@@ -985,6 +1021,312 @@
         byId("nav-players").addEventListener("click", () => go("/players"));
         bindSubmit(byId("players-form"), "Searching…", async (event, form) => {
             await searchPlayers(form.elements.q.value.trim());
+        });
+    }
+
+    // Clubs
+    let openClubId = null;
+    let openClubMember = null;
+
+    function clubRow(club) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "player-result club-row";
+        const label = document.createElement("span");
+        label.className = "player-result-name";
+        label.textContent = club.name;
+        const detail = document.createElement("small");
+        detail.textContent = `${club.memberCount} member${club.memberCount === 1 ? "" : "s"}`;
+        row.dataset.clubId = club.id;
+        label.append(detail);
+        row.append(label);
+        if (club.isOwner) {
+            const role = document.createElement("span");
+            role.className = "club-role";
+            role.textContent = "Owner";
+            row.append(role);
+        }
+        row.addEventListener("click", () => go(`/clubs/${club.id}`));
+        return row;
+    }
+
+    async function loadClubs() {
+        if (!state.accessToken) return null;
+        try {
+            const data = await request("/clubs", {}, { authenticated: true });
+            const badge = byId("clubs-badge");
+            const waiting = data.invites.length + data.requestsToReview;
+            badge.textContent = badgeText(waiting);
+            badge.hidden = waiting === 0;
+            return data;
+        } catch {
+            return null;
+        }
+    }
+
+    function renderClubList(data) {
+        if (!data) return;
+        byId("club-invites-panel").hidden = data.invites.length === 0;
+        byId("club-invites").replaceChildren(...data.invites.map(clubRow));
+        byId("club-requested-panel").hidden = data.requested.length === 0;
+        byId("club-requested").replaceChildren(...data.requested.map(clubRow));
+        const list = byId("club-list");
+        list.replaceChildren(...data.clubs.map(clubRow));
+        if (!data.clubs.length) list.append(emptyState("No clubs yet. Start one above!"));
+    }
+
+    function clubAction(label, kind, handler) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `button button-${kind}`;
+        button.textContent = label;
+        button.addEventListener("click", async () => {
+            button.disabled = true;
+            try {
+                await handler();
+            } catch (error) {
+                showNotice(byId("clubs-notice"), error.message, "error");
+            } finally {
+                button.disabled = false;
+            }
+        });
+        return button;
+    }
+
+    // Rows only link to the member page; actions live there
+    function fillUsers(id, users, base, ownerName = undefined) {
+        byId(id).replaceChildren(...users.map(user => {
+            const detail = ownerName === undefined ? "" : user.username === ownerName ? "Owner" : "Member";
+            const row = personRow(user, { detail });
+            row.addEventListener("click", () => go(`${base}/members/${encodeURIComponent(user.username)}`));
+            return row;
+        }));
+    }
+
+    const clubApi = (path, method, body) => request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {})
+    }, { authenticated: true });
+
+    async function renderClubDetail(id, memberName = null) {
+        let club;
+        try {
+            ({ club } = await request(`/clubs/${encodeURIComponent(id)}`, {}, { authenticated: true }));
+        } catch (error) {
+            openClubId = null;
+            window.history.replaceState({}, "", "/clubs");
+            byId("club-detail").hidden = true;
+            byId("club-member").hidden = true;
+            byId("clubs-list-view").hidden = false;
+            showNotice(byId("clubs-notice"), error.message, "error");
+            renderClubList(await loadClubs());
+            return;
+        }
+        const base = `/clubs/${club.id}`;
+        const mine = encodeURIComponent(state.account.username);
+        const isOwner = club.role === "owner";
+        const roster = club.members !== undefined;
+        const inList = (list, name) => list?.some(user => user.username === name);
+        if (memberName && !roster) {
+            await go(base, { replace: true });
+            return;
+        }
+        byId("club-member").hidden = !memberName;
+        byId("club-detail").hidden = Boolean(memberName);
+        if (memberName) {
+            await renderClubMember(club, memberName, inList);
+            return;
+        }
+        byId("club-detail-name").textContent = club.name;
+        byId("club-detail-owner").textContent = `Run by @${club.owner.username} · ${club.isPublic ? "Public" : "Private"} club`;
+        byId("club-invite-form").hidden = !isOwner;
+        byId("club-members").parentElement.hidden = !roster;
+        fillUsers("club-members", roster ? [club.owner, ...club.members] : [], base, club.owner.username);
+        byId("club-requests-group").hidden = !club.requests?.length;
+        fillUsers("club-requests", club.requests || [], base);
+        byId("club-invited-group").hidden = !club.invited?.length;
+        fillUsers("club-invited", club.invited || [], base);
+
+        const leave = (label, notice) => clubAction(label, "secondary", async () => {
+            await clubApi(`${base}/members/${mine}`, "DELETE");
+            await go("/clubs");
+            showNotice(byId("clubs-notice"), notice);
+        });
+        const actions = byId("club-actions");
+        actions.replaceChildren();
+        if (isOwner) {
+            actions.append(
+                clubAction(club.isPublic ? "Make private" : "Make public", "secondary", async () => {
+                    await clubApi(base, "PATCH", { isPublic: !club.isPublic });
+                    await renderClubDetail(club.id);
+                    showNotice(byId("clubs-notice"), club.isPublic
+                        ? "The club is now private: it can’t be found or asked to join."
+                        : "The club is now public: anyone can find it and ask to join.");
+                }),
+                clubAction("Delete club", "secondary", async () => {
+                    if (!window.confirm(`Delete “${club.name}” for everyone?`)) return;
+                    await clubApi(base, "DELETE");
+                    await go("/clubs");
+                    showNotice(byId("clubs-notice"), "Club deleted.");
+                })
+            );
+        } else if (club.role === "member") {
+            actions.append(leave("Leave club", "You left the club."));
+        } else if (club.role === "invited") {
+            actions.append(
+                clubAction("Accept invitation", "primary", async () => {
+                    await clubApi(`${base}/membership`, "PUT");
+                    await renderClubDetail(club.id);
+                    void loadClubs();
+                }),
+                leave("Decline", "Invitation declined.")
+            );
+        } else if (club.role === "requested") {
+            actions.append(leave("Withdraw request", "Request withdrawn."));
+        } else {
+            actions.append(clubAction("Ask to join", "primary", async () => {
+                await clubApi(`${base}/requests`, "POST");
+                await renderClubDetail(club.id);
+                showNotice(byId("clubs-notice"), "Request sent. The owner will take a look.");
+            }));
+        }
+    }
+
+    async function renderClubMember(club, username, inList) {
+        const base = `/clubs/${club.id}`;
+        const name = encodeURIComponent(username);
+        let status;
+        if (username === club.owner.username) status = "owner";
+        else if (inList(club.members, username)) status = "member";
+        else if (inList(club.requests, username)) status = "requested";
+        else if (inList(club.invited, username)) status = "invited";
+        if (!status) {
+            await go(base, { replace: true });
+            return;
+        }
+        const back = byId("club-member-back");
+        back.href = base;
+        back.onclick = event => {
+            event.preventDefault();
+            void go(base);
+        };
+        try {
+            const { user } = await request(`/users/${name}`, {}, { authenticated: true });
+            paintProfile("club-member", user);
+        } catch (error) {
+            showNotice(byId("clubs-notice"), error.message, "error");
+        }
+        byId("club-member-status").textContent = {
+            owner: `Owner of ${club.name}`,
+            member: `Member of ${club.name}`,
+            requested: `Asking to join ${club.name}`,
+            invited: `Invited to ${club.name}`
+        }[status];
+
+        const actions = byId("club-member-actions");
+        actions.replaceChildren(clubAction("View profile", "secondary", () => go(userPath("/profile", username))));
+        if (club.role !== "owner" || status === "owner") return;
+        const backToClub = async notice => {
+            await go(base);
+            showNotice(byId("clubs-notice"), notice);
+            void loadClubs();
+        };
+        if (status === "member") {
+            actions.append(
+                clubAction("Make owner", "primary", async () => {
+                    if (!window.confirm(`Hand “${club.name}” over to @${username}? You’ll become a regular member.`)) return;
+                    await clubApi(`${base}/owner`, "POST", { username });
+                    await backToClub(`@${username} now owns the club.`);
+                }),
+                clubAction("Remove from club", "secondary", async () => {
+                    if (!window.confirm(`Remove @${username} from “${club.name}”?`)) return;
+                    await clubApi(`${base}/members/${name}`, "DELETE");
+                    await backToClub(`@${username} was removed from the club.`);
+                })
+            );
+        } else if (status === "requested") {
+            actions.append(
+                clubAction("Let in", "primary", async () => {
+                    await clubApi(`${base}/requests/${name}`, "PUT");
+                    await renderClubDetail(club.id, username);
+                    void loadClubs();
+                }),
+                clubAction("Decline request", "secondary", async () => {
+                    await clubApi(`${base}/members/${name}`, "DELETE");
+                    await backToClub(`Declined @${username}’s request.`);
+                })
+            );
+        } else {
+            actions.append(clubAction("Cancel invitation", "secondary", async () => {
+                await clubApi(`${base}/members/${name}`, "DELETE");
+                await backToClub(`Invitation to @${username} cancelled.`);
+            }));
+        }
+    }
+
+    async function showClubs(id = null, memberName = null) {
+        if (!requireSignIn("Sign in to visit your clubs.")) return;
+        showView("clubs");
+        hideNotice(byId("clubs-notice"));
+        openClubId = id;
+        openClubMember = memberName;
+        byId("club-detail").hidden = !id || Boolean(memberName);
+        byId("club-member").hidden = !memberName;
+        byId("clubs-list-view").hidden = Boolean(id);
+        if (id) {
+            await renderClubDetail(id, memberName);
+        } else {
+            byId("club-search-panel").hidden = true;
+            renderClubList(await loadClubs());
+        }
+    }
+
+    async function refreshClubs() {
+        const data = await loadClubs();
+        if (byId("clubs-view").hidden) return;
+        if (openClubId) await renderClubDetail(openClubId, openClubMember);
+        else renderClubList(data);
+    }
+
+    function bindClubs() {
+        byId("nav-clubs").addEventListener("click", () => go("/clubs"));
+        bindSubmit(byId("club-form"), "Starting…", async (event, form) => {
+            try {
+                const { club } = await request("/clubs", {
+                    method: "POST",
+                    body: JSON.stringify({ name: form.elements.name.value })
+                }, { authenticated: true });
+                form.reset();
+                await go(`/clubs/${club.id}`);
+            } catch (error) {
+                showNotice(byId("clubs-notice"), error.message, "error");
+            }
+        });
+        bindSubmit(byId("club-search-form"), "Searching…", async (event, form) => {
+            hideNotice(byId("clubs-notice"));
+            try {
+                const { clubs } = await request(`/clubs/search?q=${encodeURIComponent(form.elements.q.value.trim())}`, {}, { authenticated: true });
+                byId("club-search-panel").hidden = false;
+                const results = byId("club-search-results");
+                results.replaceChildren(...clubs.map(clubRow));
+                if (!clubs.length) results.append(emptyState("No public clubs by that name."));
+            } catch (error) {
+                showNotice(byId("clubs-notice"), error.message, "error");
+            }
+        });
+        bindSubmit(byId("club-invite-form"), "Inviting…", async (event, form) => {
+            hideNotice(byId("clubs-notice"));
+            try {
+                const { invited } = await request(`/clubs/${openClubId}/members`, {
+                    method: "POST",
+                    body: JSON.stringify({ username: form.elements.username.value })
+                }, { authenticated: true });
+                form.reset();
+                await renderClubDetail(openClubId);
+                showNotice(byId("clubs-notice"), `Invitation sent to @${invited}.`);
+            } catch (error) {
+                showNotice(byId("clubs-notice"), error.message, "error");
+            }
         });
     }
 
@@ -1022,12 +1364,11 @@
             if (chat.friend?.username === payload?.username && !byId("messages-view").hidden) await refreshThread();
             void loadConversations();
         });
+        socket.on("clubs", () => void refreshClubs());
         socket.on("friends", () => {
             void loadConversations();
             if (!byId("players-view").hidden) void loadFriends();
-            if (!byId("players-view").hidden && !byId("player-card").hidden) {
-                void openPlayer(byId("player-username").textContent.replace(/^@/, ""));
-            }
+            if (!byId("profile-view").hidden && profileName) void loadProfile(profileName);
         });
     }
 
@@ -1271,6 +1612,7 @@
         bindHome();
         bindPlayers();
         bindMessages();
+        bindClubs();
 
         const resetToken = new URLSearchParams(window.location.search).get("resetPassword");
         if (resetToken) {

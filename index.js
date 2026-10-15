@@ -53,7 +53,7 @@ server.use(express.static(path.join(__dirname, "public"), {
 server.use("/api", routes)
 
 // Client-side routes all serve the single-page app shell
-const APP_ROUTES = ["/sign_in", "/register", "/my_account", "/players", "/messages"];
+const APP_ROUTES = ["/sign_in", "/register", "/my_account", "/players", "/profile", "/messages", "/clubs"];
 const sendIndex = (req, res) => {
 	res.sendFile(path.join(__dirname, "public", "index.html"));
 };

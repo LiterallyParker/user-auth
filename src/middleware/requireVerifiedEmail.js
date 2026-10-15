@@ -8,7 +8,7 @@ module.exports = async (req, res, next) => {
         if (!user?.emailVerified) {
             return res.status(HTTPcodes.forbidden).json({
                 error: "EmailNotVerified",
-                message: "Verify your email to send messages and friend requests"
+                message: "Verify your email to message, add friends, or join and run clubs"
             });
         }
         return next();

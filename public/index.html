@@ -28,6 +28,7 @@
                 <button class="topnav-link" id="nav-home" type="button">Home</button>
                 <button class="topnav-link" id="nav-players" type="button">Players</button>
                 <button class="topnav-link" id="nav-messages" type="button">Messages<span class="nav-badge" id="nav-badge" hidden></span></button>
+                <button class="topnav-link" id="nav-clubs" type="button">Clubs<span class="nav-badge" id="clubs-badge" hidden></span></button>
                 <button class="topnav-link" id="nav-account" type="button">Sign in</button>
             </nav>
             <button class="button button-quiet topbar-logout" id="logout-button" type="button" hidden>Sign out</button>
@@ -51,18 +52,21 @@
                     <div class="friends-group"><h3>Friends</h3><div class="friends-list" id="friends-list"></div></div>
                     <div class="friends-group" id="friends-outgoing-group" hidden><h3>Requests you sent</h3><div class="friends-list" id="friends-outgoing"></div></div>
                 </section>
-                <div class="players-layout">
-                    <div class="players-results" id="players-results" aria-live="polite"></div>
-                    <article class="player-card" id="player-card" hidden>
-                        <div class="avatar player-avatar" id="player-avatar"></div>
-                        <h2 id="player-username"></h2>
-                        <p class="player-name" id="player-name" hidden></p>
-                        <p class="player-bio" id="player-bio" hidden></p>
-                        <p class="player-since" id="player-since" hidden></p>
-                        <p class="player-private" id="player-private" hidden>This player keeps their cards close to their chest, so only their username and picture are shown. Friends get a peek.</p>
-                        <div class="player-actions" id="player-actions"></div>
-                    </article>
-                </div>
+                <div class="players-results" id="players-results" aria-live="polite"></div>
+            </section>
+
+            <section class="profile" id="profile-view" aria-labelledby="profile-username" hidden>
+                <a class="club-back" id="profile-back" href="/players">← Find a player</a>
+                <div class="notice" id="profile-notice" role="status" aria-live="polite" tabindex="-1" hidden></div>
+                <article class="player-card profile-card" id="profile-card" hidden>
+                    <div class="avatar player-avatar" id="profile-avatar"></div>
+                    <h1 id="profile-username"></h1>
+                    <p class="player-name" id="profile-name" hidden></p>
+                    <p class="player-bio" id="profile-bio" hidden></p>
+                    <p class="player-since" id="profile-since" hidden></p>
+                    <p class="player-private" id="profile-private" hidden>This account is private. Only friends can view it.</p>
+                    <div class="player-actions" id="profile-actions"></div>
+                </article>
             </section>
 
             <section class="messages" id="messages-view" aria-labelledby="messages-title" hidden>
@@ -88,6 +92,63 @@
                     </section>
                     <p class="empty-state thread-empty" id="thread-empty">Pick a friend to start chatting.</p>
                 </div>
+            </section>
+
+            <section class="players" id="clubs-view" aria-labelledby="clubs-title" hidden>
+                <div class="players-head">
+                    <p class="eyebrow">THE MEMBERS’ ROOM</p>
+                    <h1 id="clubs-title">Clubs</h1>
+                    <p class="intro-copy">Start a club, invite whoever you like, or find a public one and ask to join. Only the owner hands out invitations.</p>
+                </div>
+                <div class="notice" id="clubs-notice" role="status" aria-live="polite" tabindex="-1" hidden></div>
+                <div id="clubs-list-view">
+                    <form class="players-search" id="club-form">
+                        <label class="field"><span>New club name</span><input id="club-name" name="name" type="text" maxlength="40" autocomplete="off" placeholder="The High Rollers" required></label>
+                        <button class="button button-primary" type="submit">Start a club</button>
+                    </form>
+                    <form class="players-search" id="club-search-form" role="search">
+                        <label class="field"><span>Find a public club</span><input id="club-search-query" name="q" type="search" minlength="2" maxlength="40" autocomplete="off" placeholder="Search club names…" required></label>
+                        <button class="button button-secondary" type="submit">Search</button>
+                    </form>
+                    <section class="friends-panel" id="club-search-panel" hidden>
+                        <h2>Search results</h2>
+                        <div class="friends-list" id="club-search-results"></div>
+                    </section>
+                    <section class="friends-panel" id="club-invites-panel" hidden>
+                        <h2>Invitations</h2>
+                        <div class="friends-list" id="club-invites"></div>
+                    </section>
+                    <section class="friends-panel" id="club-requested-panel" hidden>
+                        <h2>Waiting for a reply</h2>
+                        <div class="friends-list" id="club-requested"></div>
+                    </section>
+                    <section class="friends-panel">
+                        <h2>Your clubs</h2>
+                        <div class="friends-list" id="club-list"></div>
+                    </section>
+                </div>
+                <article class="friends-panel" id="club-member" hidden>
+                    <a class="club-back" id="club-member-back" href="#">← Back to club</a>
+                    <div class="avatar player-avatar" id="club-member-avatar"></div>
+                    <h2 id="club-member-username"></h2>
+                    <p class="player-name" id="club-member-name" hidden></p>
+                    <p class="player-bio" id="club-member-bio" hidden></p>
+                    <p class="player-since" id="club-member-since" hidden></p>
+                    <p class="player-since" id="club-member-status"></p>
+                    <div class="player-actions" id="club-member-actions"></div>
+                </article>
+                <article class="friends-panel" id="club-detail" hidden>
+                    <h2 id="club-detail-name"></h2>
+                    <p class="intro-copy" id="club-detail-owner"></p>
+                    <form class="players-search" id="club-invite-form" hidden>
+                        <label class="field"><span>Invite a player</span><input id="club-invite-username" name="username" type="text" maxlength="30" autocomplete="off" placeholder="Username" required></label>
+                        <button class="button button-primary" type="submit">Send invite</button>
+                    </form>
+                    <div class="friends-group"><h3>Members</h3><div class="friends-list" id="club-members"></div></div>
+                    <div class="friends-group" id="club-requests-group" hidden><h3>Asking to join</h3><div class="friends-list" id="club-requests"></div></div>
+                    <div class="friends-group" id="club-invited-group" hidden><h3>Invited</h3><div class="friends-list" id="club-invited"></div></div>
+                    <div class="player-actions" id="club-actions"></div>
+                </article>
             </section>
 
             <section class="home" id="home-view" aria-labelledby="home-title">
